@@ -1,0 +1,1009 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-21",
+  "ghosts": [
+    {
+      "name": "Aswang",
+      "shortFact": "Max LOS speed in 8.667s",
+      "speed": "1.53",
+      "sanity": "50%",
+      "losSpeedup": "Quicker",
+      "evidence": [
+        "Freezing Temperatures",
+        "Ghost Writing",
+        "D.O.T.S Projector"
+      ],
+      "canBe": [
+        "slow"
+      ],
+      "canHunt": [
+        "normal"
+      ],
+      "tell": "TELLS\n• Reaches max LOS speed in 8.667s instead of the standard 13s.\n• Hunt immediately ends if the ghost enters an official hiding spot that contains a detected player.\n\nBEHAVIORS\n• If a hunt finishes because of hiding spot entry tracking rules, the entity targets that player location instantly upon starting the next sequence.",
+      "speedGraph": {
+        "base": 1.53,
+        "max": 2.53,
+        "timeToMax": 8.667
+      },
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "If the ghost enters your hiding spot but doesn't kill you and the hunt ends, it's an Aswang."
+        }
+      ]
+    },
+    {
+      "name": "Banshee",
+      "shortFact": "Targets one player during hunt",
+      "speed": "1.7",
+      "sanity": "50%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "Ultraviolet",
+        "Ghost Orb",
+        "D.O.T.S Projector"
+      ],
+      "canBe": [
+        "normal"
+      ],
+      "canHunt": [
+        "veryearly",
+        "early",
+        "normal",
+        "late"
+      ],
+      "tell": "TELLS\n• Can only be female, ghost model and ghost name will reflect this.\n• Will select a single investigator to exclusively pursue during a hunt.\n• Hunts based completely on its specific target's sanity instead of team average.\n• 33% chance to give 1 of 20 unique screams through the paramic / sound recorder.\n\nBEHAVIORS\n• Target loses 15% sanity if they touch the ghost during a singing ghost event.\n• Prefers singing ghost events and will attempt to roam toward their target while in DOTS state.\n\nABILITIES\n• 66% chance to stalk/roam to its target (if inside) without leaving EMF.",
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "If it is only targeting one person during a hunt, it is a Banshee."
+        },
+        {
+          "type": "ruleout",
+          "prefix": "Tell (Definitive): ",
+          "text": "If it is targeting everyone during a hunt, it is not a Banshee."
+        }
+      ]
+    },
+    {
+      "name": "Dayan",
+      "shortFact": "Speed based on player movement",
+      "speed": "1.2 / 2.25",
+      "sanity": "45% / 65%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "EMF Level 5",
+        "Ghost Orb",
+        "Spirit Box"
+      ],
+      "canBe": [
+        "slow",
+        "normal",
+        "fast"
+      ],
+      "canHunt": [
+        "early",
+        "late"
+      ],
+      "tell": "TELLS\n• Can only be female, ghost model and ghost name will reflect this.\n• Hunt speed and sanity are completely determined by nearby player movement.\n• Can hunt at 65% (and moves at 2.25m/s) if nearest player is walking within 10m.\n\nBEHAVIORS\n• Drops to 1.2m/s and delays hunt until 45% if the nearby player stands still.\n• If ghost is 10m or further, it defaults to standard ghost speed 1.7m/s.\n• Has LOS speed-up while greater than 10m from any player. Once within 10m, LOS speed-up is no longer applied.",
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Behavior): ",
+          "text": "If it changes speeds depending on whether you move or stay still, it is likely a Dayan. Stand still to see if it is slow, then move to see if it speeds up."
+        }
+      ]
+    },
+    {
+      "name": "Deildegast",
+      "shortFact": "Slowed by thrown items / No LOS speedup",
+      "speed": "0.4 / 3.0",
+      "sanity": "50%",
+      "losSpeedup": "No",
+      "evidence": [
+        "EMF Level 5",
+        "Ghost Writing",
+        "D.O.T.S Projector"
+      ],
+      "canBe": [
+        "slow",
+        "normal",
+        "fast"
+      ],
+      "canHunt": [
+        "normal"
+      ],
+      "tell": "TELLS\n• Base speed of 3.0m/s with no line-of-sight speed-up.\n• Speed decreases by 0.1m/s per item thrown by players (alive or dead).\n\nBEHAVIORS\n• Base speed returns to 3.0m/s after each hunt attempt.\n• Can reach a minimum speed of 0.4m/s if 26+ items are moved.",
+      "speedGraph": {
+        "base": 3,
+        "max": 3,
+        "timeToMax": 13
+      },
+      "behaviors": [
+        {
+          "type": "ruleout",
+          "prefix": "Tell (Definitive): ",
+          "text": "If it clearly speeds up with line-of-sight, it is not a Deildegast."
+        }
+      ]
+    },
+    {
+      "name": "Demon",
+      "shortFact": "Hunts early / Short cooldown",
+      "speed": "1.7",
+      "sanity": "70% - 100%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "Ultraviolet",
+        "Ghost Writing",
+        "Freezing Temperatures"
+      ],
+      "canBe": [
+        "normal"
+      ],
+      "canHunt": [
+        "veryearly",
+        "early",
+        "normal",
+        "late"
+      ],
+      "tell": "TELLS\n• Can hunt at any sanity.\n• Can hunt 60s after being smudged instead of the global standard 90s.\n\nBEHAVIORS\n• Retains a brief 20s cooldown delay between previous hunts or crucifix deployments instead of 25s.\n• Crucifix radius parameters receive a flat 50% increase check value per tier.\n\nHUNT SANITY\n• Hunts normally at 70%.",
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "If it hunts above 80% sanity (and 3 candles were not just blown out), it is a Demon."
+        }
+      ]
+    },
+    {
+      "name": "Deogen",
+      "shortFact": "Always knows location / Slow near player",
+      "speed": "0.4 / 3.0",
+      "sanity": "40%",
+      "losSpeedup": "No",
+      "evidence": [
+        "Spirit Box",
+        "Ghost Writing",
+        "D.O.T.S Projector"
+      ],
+      "forcedEvidence": "Spirit Box",
+      "canBe": [
+        "slow",
+        "fast"
+      ],
+      "canHunt": [
+        "late"
+      ],
+      "tell": "TELLS\n• Always has exact LOS of the player during hunts, you cannot hide from a Deogen.\n• Moves extremely fast (3.0m/s) far away, but drops to a crawl (0.4m/s) when close.\n• 33% chance to give heavy breathing through spirit box when within 1m of the ghost.\n• Visibility factor is vastly heightened during the hunt state.\n• Does not hunt until 40% average sanity.\n• Guaranteed spirit box on difficulties with at least 1 evidence given.",
+      "speedGraph": {
+        "base": 3,
+        "max": 3,
+        "timeToMax": 13
+      },
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "If it b-lines straight to you during a hunt and becomes super slow when near you, it is a Deogen."
+        },
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "If you get heavy breathing through the Spirit Box, it is a Deogen."
+        }
+      ]
+    },
+    {
+      "name": "Gallu",
+      "shortFact": "Enraged by Salt, Crucifix & Incense",
+      "speed": "1.36 / 1.7 / 1.96",
+      "sanity": "40% / 60%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "EMF Level 5",
+        "Ultraviolet",
+        "Spirit Box"
+      ],
+      "canBe": [
+        "slow",
+        "normal",
+        "fast"
+      ],
+      "canHunt": [
+        "early",
+        "normal",
+        "late"
+      ],
+      "tell": "TELLS\n• Cycles through 3 behavioral states [Normal > Enraged > Weakened].\n• Becomes Enraged if it steps in salt, is incensed, or uses a crucifix.\n\nHUNT SPEED & SANITY\n• 50% sanity / 1.7m/s in Normal State.\n• 60% sanity / 1.96m/s in Enraged State.\n• 40% sanity / 1.36m/s in Weakened State.",
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Behavior): ",
+          "text": "If it has only stepped in 1 salt pile, it is likely a Gallu."
+        },
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "If it ignored salt during a hunt (Wraith is ruled out), it is a Gallu.",
+          "conditionGhost": "Wraith",
+          "textIfConditionValid": "If it ignored salt during a hunt, check if it's a Wraith. If Wraith is ruled out, it is a Gallu."
+        }
+      ]
+    },
+    {
+      "name": "Goryo",
+      "shortFact": "D.O.T.S on camera only",
+      "speed": "1.7",
+      "sanity": "50%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "EMF Level 5",
+        "Ultraviolet",
+        "D.O.T.S Projector"
+      ],
+      "forcedEvidence": "D.O.T.S Projector",
+      "canBe": [
+        "normal"
+      ],
+      "canHunt": [
+        "normal"
+      ],
+      "tell": "TELLS\n• DOTS only appear on a video camera and will not show if a player is in the same room.\n• Cannot change favorite rooms.\n\nBEHAVIORS\n• Less likely to roam and cannot long roam, keeping it within its room more often.\n• Will enter DOTS state more frequently than other ghosts.\n\nEVIDENCE\n• Guaranteed DOTS on difficulties with at least 1 evidence given.",
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "If you only see D.O.T.S through a video camera and not with your own eyes, it is a Goryo."
+        },
+        {
+          "type": "ruleout",
+          "prefix": "Tell (Definitive): ",
+          "text": "If D.O.T.S shows up without a video camera, it is not a Goryo."
+        }
+      ]
+    },
+    {
+      "name": "Hantu",
+      "shortFact": "Fast in cold / Freezing breath",
+      "speed": "1.4 - 2.7",
+      "sanity": "50%",
+      "losSpeedup": "No",
+      "evidence": [
+        "Ultraviolet",
+        "Ghost Orb",
+        "Freezing Temperatures"
+      ],
+      "forcedEvidence": "Freezing Temperatures",
+      "canBe": [
+        "slow",
+        "normal",
+        "fast"
+      ],
+      "canHunt": [
+        "normal"
+      ],
+      "tell": "TELLS\n• Moves faster in colder rooms and slower in warm rooms during hunts.\n• Will have visible freezing breath during hunts when the breaker is off/broken.\n\nBEHAVIORS\n• Cannot turn on the breaker and is more likely to turn it off.\n• Does not speed up in line-of-sight.\n\nEVIDENCE\n• Guaranteed freezing on difficulties with at least 1 evidence given.",
+      "speedGraph": {
+        "base": 2.7,
+        "max": 2.7,
+        "timeToMax": 13
+      },
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "If it has freezing breath when the power is off during a hunt, it is a Hantu."
+        },
+        {
+          "type": "ruleout",
+          "prefix": "Tell (Definitive): ",
+          "text": "If it turned on the breaker, it is not a Hantu."
+        },
+        {
+          "type": "ruleout",
+          "prefix": "Tell (Definitive): ",
+          "text": "If it clearly has line-of-sight speedup, it is not a Hantu."
+        }
+      ]
+    },
+    {
+      "name": "Jinn",
+      "shortFact": "Speeds up when >3m away (breaker on)",
+      "speed": "1.7 / 2.5",
+      "sanity": "50%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "EMF Level 5",
+        "Ultraviolet",
+        "Freezing Temperatures"
+      ],
+      "canBe": [
+        "normal",
+        "fast"
+      ],
+      "canHunt": [
+        "normal"
+      ],
+      "tell": "TELLS\n• With the breaker on, it will speed up to 2.5m/s if a player is in LOS and far away.\n• The Jinn cannot turn off the breaker.\n\nABILITIES\n• With the breaker on, can drop a nearby player’s sanity by 25%, leaving EMF 2 or 5 at the breaker.\n\nHUNT SPEED\n• Standard 1.7m/s otherwise. LOS speed-up is still accrued in the background while ability is active.",
+      "behaviors": [
+        {
+          "type": "ruleout",
+          "prefix": "Tell (Definitive): ",
+          "text": "If it turned the breaker off, it is not a Jinn."
+        }
+      ]
+    },
+    {
+      "name": "Kormos",
+      "shortFact": "Blind / Chases sound & footsteps",
+      "speed": "1.7 / 2.21",
+      "sanity": "50% / 70%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "Ghost Orb",
+        "Spirit Box",
+        "Ultraviolet"
+      ],
+      "canBe": [
+        "normal",
+        "fast"
+      ],
+      "canHunt": [
+        "veryearly",
+        "early",
+        "normal"
+      ],
+      "tell": "TELLS\n• Is completely blind; detects players exclusively via sound and electronics.\n• Has Pseudo-LOS: builds speed up to 2.21m/s when traveling to detected footsteps.\n\nBEHAVIORS\n• Sprinting in the same room as a Kormos can cause it to hunt up to 70% average sanity.\n• Will not do 'Ghost Mist' nor 'Chasing' ghost events.\n\nHUNT SPEED\n• 1.7m/s otherwise. Accumulated pseudo-LOS speed transfers between states.",
+      "speedGraph": {
+        "base": 1.7,
+        "max": 2.21,
+        "timeToMax": 13
+      },
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "If it ignores you when you stand still but comes to you when you walk or run, it is a Kormos."
+        }
+      ]
+    },
+    {
+      "name": "Mare",
+      "shortFact": "Can't turn on lights",
+      "speed": "1.7",
+      "sanity": "40% / 60%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "Spirit Box",
+        "Ghost Orb",
+        "Ghost Writing"
+      ],
+      "canBe": [
+        "normal"
+      ],
+      "canHunt": [
+        "early",
+        "late"
+      ],
+      "tell": "TELLS\n• Hunts at 60% average sanity if the lights are off, 40% if the lights are on.\n• Prefers turning off lights and light bursting events; cannot turn on lights natively.\n\nBEHAVIORS\n• More likely to long roam when lights are on in its current room.\n• Only ghost that cannot flicker the lights with EMF 2 at the switch.\n\nABILITIES\n• Has a chance to immediately turn off a light switch that a player has turned on within 4m.\n• Can use its ability during events, making it the only ghost that can interact with a switch during an event.",
+      "behaviors": [
+        {
+          "type": "ruleout",
+          "prefix": "Tell (Definitive): ",
+          "text": "If it turned a light ON, it is not a Mare."
+        },
+        {
+          "type": "mark",
+          "prefix": "Tell (Behavior): ",
+          "text": "If it instantly turns a light OFF after you turn it on, it may be a Mare. Repeat the test."
+        }
+      ]
+    },
+    {
+      "name": "Moroi",
+      "shortFact": "Faster as sanity drops",
+      "speed": "1.5 - 2.25",
+      "sanity": "50%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "Spirit Box",
+        "Ghost Writing",
+        "Freezing Temperatures"
+      ],
+      "forcedEvidence": "Spirit Box",
+      "canBe": [
+        "slow",
+        "normal",
+        "fast"
+      ],
+      "canHunt": [
+        "normal"
+      ],
+      "tell": "TELLS\n• Speed increases drastically as the average team sanity decreases.\n• Curses players who hear it on the paramic or spirit box, causing faster passive sanity drain.\n\nHUNT SPEED & BEHAVIOR\n• Incense blindness duration during hunts is increased from 5s to 7s.\n• Can reach a massive speed of 3.71 m/s when in continuous LOS.\n\nEVIDENCE\n• Guaranteed spirit box on difficulties with at least 1 evidence given.",
+      "speedGraph": {
+        "base": 2.25,
+        "max": 3.71,
+        "timeToMax": 13
+      },
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Behavior): ",
+          "text": "If you hear it through the spirit box and your sanity drops without stopping even in light, it is a Moroi."
+        },
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "If it gets faster as your team sanity drops, it is a Moroi."
+        }
+      ]
+    },
+    {
+      "name": "Myling",
+      "shortFact": "Quieter footsteps during hunt",
+      "speed": "1.7",
+      "sanity": "50%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "EMF Level 5",
+        "Ultraviolet",
+        "Ghost Writing"
+      ],
+      "canBe": [
+        "normal"
+      ],
+      "canHunt": [
+        "normal"
+      ],
+      "tell": "TELLS\n• Footsteps and vocals run completely silent once past a 12 meter distance during a hunt.\n• Makes sounds through the parabolic microphone / sound recorder more frequently than other ghosts.",
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "During a hunt, if you cannot hear the ghost between 12m and 20m away, it is a Myling."
+        },
+        {
+          "type": "ruleout",
+          "prefix": "Tell (Definitive): ",
+          "text": "If the ghost makes two paranormal sounds through the Parabolic Microphone or Sound Recorder within 80s of each other, it is a Myling."
+        }
+      ]
+    },
+    {
+      "name": "Obake",
+      "shortFact": "Shapeshifts During Hunts / 6-finger prints",
+      "speed": "1.7",
+      "sanity": "50%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "EMF Level 5",
+        "Ultraviolet",
+        "Ghost Orb"
+      ],
+      "forcedEvidence": "Ultraviolet",
+      "canBe": [
+        "normal"
+      ],
+      "canHunt": [
+        "normal"
+      ],
+      "tell": "TELLS\n• Will shapeshift its model for a single blink during hunts at least once per standard hunt.\n• Can leave unique 6-fingered, double, or 5-finger prints.\n\nBEHAVIORS\n• Has a 25% chance to completely hide ultraviolet evidence.\n• 25% chance to miss a footstep during events.\n\nABILITIES\n• Can make fingerprints disappear twice as fast on the map.\n\nEVIDENCE\n• Guaranteed ultraviolet on difficulties with at least 1 evidence given.",
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "Will change ghost models for a single blink during a hunt at least once per standard hunt."
+        },
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "Has a 25% chance to hide Ultraviolet evidence."
+        },
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "Can leave a special 6 fingered fingerprint."
+        }
+      ],
+      "hideBehaviorScroll": true
+    },
+    {
+      "name": "Obambo",
+      "shortFact": "Alternates fast/slow states",
+      "speed": "1.45 / 1.96",
+      "sanity": "10% / 65%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "Ghost Writing",
+        "Ultraviolet",
+        "D.O.T.S Projector"
+      ],
+      "canBe": [
+        "slow",
+        "fast"
+      ],
+      "canHunt": [
+        "early",
+        "late"
+      ],
+      "tell": "TELLS\n• Will shift between a 'calm' state (10% sanity) and 'aggressive' state (65% sanity) every 2 minutes.\n• Faster when aggressive (1.96m/s), slower when calm (1.45m/s).\n\nBEHAVIORS\n• Hunt duration is decreased by 20% when started in an aggressive state.\n• Can change states dynamically during a hunt.",
+      "speedGraph": {
+        "base": 1.45,
+        "max": 2.3925,
+        "timeToMax": 13
+      },
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "If the ghost during a hunt changes from 1.96m/s to 1.45m/s or the other way around, it is an Obambo."
+        }
+      ]
+    },
+    {
+      "name": "Oni",
+      "shortFact": "Very visible during hunt",
+      "speed": "1.7",
+      "sanity": "50%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "EMF Level 5",
+        "Freezing Temperatures",
+        "D.O.T.S Projector"
+      ],
+      "canBe": [
+        "normal"
+      ],
+      "canHunt": [
+        "normal"
+      ],
+      "tell": "TELLS\n• Blinks more frequently during hunts, making it highly visible.\n• Cannot do Ghost Mist / Airball event.\n\nBEHAVIORS\n• Drains 20% sanity during events instead of the standard 10%.\n• More active around multiple people.\n• More likely to appear as full ghost model during events.",
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "During a ghost hunt, the ghost is much more visible versus a standard ghost."
+        },
+        {
+          "type": "ruleout",
+          "prefix": "Tell (Definitive): ",
+          "text": "If you get a Ghost Mist event, it is not an Oni."
+        }
+      ]
+    },
+    {
+      "name": "Onryo",
+      "shortFact": "Blows out firelights more often (<20s)",
+      "speed": "1.7",
+      "sanity": "40% - 100%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "Spirit Box",
+        "Ghost Orb",
+        "Freezing Temperatures"
+      ],
+      "canBe": [
+        "normal"
+      ],
+      "canHunt": [
+        "veryearly",
+        "early",
+        "normal",
+        "late"
+      ],
+      "tell": "TELLS\n• Flames act like crucifixes; it will prioritize blowing out a flame over a crucifix to prevent a hunt.\n• Will attempt to hunt at any sanity after extinguishing a flame, if it has extinguished at least 2 others prior.\n\nBEHAVIORS\n• Only ghost that can extinguish the same firelight twice within 20s.\n• Cannot light fire sources.\n• More likely to extinguish a flame the more players that are dead.\n\nHUNT SANITY\n• Hunts normally at 60%, can't hunt until 40% when near lit firelights.",
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "If it blows out the same firelight twice within 20s, it is an Onryo."
+        },
+        {
+          "type": "ruleout",
+          "prefix": "Tell (Definitive): ",
+          "text": "If it lights a fire source, it is not an Onryo."
+        },
+        {
+          "type": "ruleout",
+          "prefix": "Tell (Definitive): ",
+          "text": "If you place a candle on top of a tier 1 or 2 Crucifix and it burns the Crucifix while the candle remains lit, it is not an Onryo."
+        }
+      ],
+      "hideBehaviorScroll": true
+    },
+    {
+      "name": "Phantom",
+      "shortFact": "Barely visible during hunt / Disappears in photo/video",
+      "speed": "1.7",
+      "sanity": "50%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "Spirit Box",
+        "Ultraviolet",
+        "D.O.T.S Projector"
+      ],
+      "canBe": [
+        "normal"
+      ],
+      "canHunt": [
+        "normal"
+      ],
+      "tell": "TELLS\n• Blinks visibly slower during a hunt, remaining invisible for longer periods.\n• Taking a photo or video of the ghost will cause it to immediately disappear.\n\nBEHAVIORS\n• Will not appear in 'Ghost' photos or 'Ghost' videos.\n• Player will lose 0.5% sanity /s while in heartbeat range of the ghost during hunts and events.\n\nABILITIES\n• Can roam toward a random player, leaving EMF 2 at the location where it wanders to.",
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "If you take a photo of a Phantom during an event or while the ghost is visible in D.O.T.S and the ghost disappears and the ghost does not appear in the photo in the journal, it is a Phantom."
+        },
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "During a hunt, if the ghost is basically invisible during the hunt, it is a Phantom."
+        }
+      ]
+    },
+    {
+      "name": "Poltergeist",
+      "shortFact": "Throws items rapidly",
+      "speed": "1.7",
+      "sanity": "50%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "Spirit Box",
+        "Ultraviolet",
+        "Ghost Writing"
+      ],
+      "canBe": [
+        "normal"
+      ],
+      "canHunt": [
+        "normal"
+      ],
+      "tell": "TELLS\n• During hunts, Poltergeists will throw an item every 0.5s with increased force.\n• Poltergeist Explosion: can throw multiple objects simultaneously, decreasing nearby sanity by 2% per item.\n\nBEHAVIORS\n• Has a higher chance to throw & interact with objects outside of hunts.\n• Only ghost that can throw an item while the ghost is in a lit room.",
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Behavior): ",
+          "text": "Place objects on the floor where the ghost is likely to walk during a hunt. If all the items are thrown and at a great distance, it is likely a Poltergeist."
+        },
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "Place a bunch of items close together in the ghost rooms, if it throws multiple items or all at the same time, it is a Poltergeist."
+        }
+      ]
+    },
+    {
+      "name": "Raiju",
+      "shortFact": "Faster near electronics",
+      "speed": "1.7 / 2.5",
+      "sanity": "50% / 65%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "EMF Level 5",
+        "Ghost Orb",
+        "D.O.T.S Projector"
+      ],
+      "canBe": [
+        "normal",
+        "fast"
+      ],
+      "canHunt": [
+        "early",
+        "normal"
+      ],
+      "tell": "TELLS\n• Speed increases massively to 2.5m/s when near active electronic equipment.\n• Causes electronic disruption from 15m away instead of the standard 10m.\n\nBEHAVIORS\n• Can hunt at 65% sanity if near active player equipment.\n• Has a louder heartbeat sound than other ghosts.\n• Has standard LOS speed-up when not near electronics.",
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "During a hunt, attract the ghost with electronics. Then, turn the electronics off. If the ghost slows down, it's a Raiju."
+        },
+        {
+          "type": "mark",
+          "prefix": "Tell (Behavior): ",
+          "text": "If the ghost has a bass boosted heart beat, it is likely a Raiju."
+        }
+      ]
+    },
+    {
+      "name": "Revenant",
+      "shortFact": "Slow hidden / Fast visible",
+      "speed": "1.0 / 3.0",
+      "sanity": "50%",
+      "losSpeedup": "No",
+      "losTooltip": "While it technically doesn't have LOS speedup, when it spots you a Revenant speeds up to 3m/s.",
+      "evidence": [
+        "Ghost Orb",
+        "Ghost Writing",
+        "Freezing Temperatures"
+      ],
+      "canBe": [
+        "slow",
+        "fast"
+      ],
+      "canHunt": [
+        "normal"
+      ],
+      "tell": "TELLS\n• Moves incredibly fast (3.0m/s) the moment it detects a player (voice, electronics, or LOS).\n• Drops to a very slow crawl (1.0m/s) when wandering without a target.\n\nHUNT SPEED\n• Gradually slows down after reaching the player's last known location.",
+      "speedGraph": {
+        "base": 1,
+        "max": 3,
+        "timeToMax": 0.1
+      },
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "During a hunt, hide out of sight from the ghost. Then, when within range, press the radio button to attract the ghost. If it speeds up from a 0.4m/s to 3m/s instantly, it is a Revenant."
+        }
+      ]
+    },
+    {
+      "name": "Shade",
+      "shortFact": "Shy / Won't hunt with player in room",
+      "speed": "1.7",
+      "sanity": "35%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "EMF Level 5",
+        "Ghost Writing",
+        "Freezing Temperatures"
+      ],
+      "canBe": [
+        "normal"
+      ],
+      "canHunt": [
+        "late"
+      ],
+      "tell": "TELLS\n• Cannot hunt or do interactions that result in EMF 2, 3, or 5 if in the same room as a player.\n• Does not hunt until 35% average sanity.\n\nBEHAVIORS\n• Only ghost that can appear as a shadow ghost model on cursed object events.\n• More likely to do 'Ghost Mist' events, but cannot perform singing events.\n• Chance for doing ghost events decreases the higher average sanity is above 50%.\n• Will not blow out firelights while hunting if in the same room as the player.",
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "If you have the Summoning Circle and light it and the ghost is a shadow, it is a Shade. (Works for Music Box & Monkey Paw)."
+        },
+        {
+          "type": "ruleout",
+          "prefix": "Tell (Definitive): ",
+          "text": "If the ghost hunts above 35% average sanity, it is not a Shade."
+        },
+        {
+          "type": "ruleout",
+          "prefix": "Tell (Definitive): ",
+          "text": "If the ghost does any interaction or event resulting in EMF 2, 3 or 4 in the same room as a player, it is not a Shade."
+        }
+      ]
+    },
+    {
+      "name": "Spirit",
+      "shortFact": "Long smudge cooldown (180s)",
+      "speed": "1.7",
+      "sanity": "50%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "EMF Level 5",
+        "Spirit Box",
+        "Ghost Writing"
+      ],
+      "canBe": [
+        "normal"
+      ],
+      "canHunt": [
+        "normal"
+      ],
+      "tell": "TELLS\n• Will wait 180s after being incensed before attempting to hunt again, instead of the standard 90s.",
+      "behaviors": [
+        {
+          "type": "ruleout",
+          "prefix": "Tell (Definitive): ",
+          "text": "If you Smudge the ghost and it hunts before 3 minutes, it is not a Spirit."
+        }
+      ]
+    },
+    {
+      "name": "Thaye",
+      "shortFact": "Ages over time / Slower as it ages",
+      "speed": "1.0 - 2.75",
+      "sanity": "15% - 75%",
+      "losSpeedup": "No",
+      "evidence": [
+        "Ghost Orb",
+        "Ghost Writing",
+        "D.O.T.S Projector"
+      ],
+      "canBe": [
+        "slow",
+        "normal",
+        "fast"
+      ],
+      "canHunt": [
+        "veryearly",
+        "early",
+        "normal",
+        "late"
+      ],
+      "tell": "TELLS\n• Enters the location highly active and extremely fast (2.75m/s and 75% hunt threshold).\n• Ghost attempts to age every 1-2 minutes near players, becoming progressively slower and weaker.\n\nBEHAVIORS\n• Hunts at 15% / 1.0m/s at its oldest.\n• Age response on Ouija board increases as Thaye ages.\n• Only ghost that can have an age of 90+ on the Ouija Board.\n• Does not speed up in line-of-sight.",
+      "speedGraph": {
+        "base": 2.75,
+        "max": 2.75,
+        "timeToMax": 13
+      },
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "If you ask the ghost's age using a Ouija Board after asking it after a few minutes pass and it has increased in age, it is a Thaye."
+        },
+        {
+          "type": "ruleout",
+          "prefix": "Tell (Definitive): ",
+          "text": "If it has LOS speedup during a hunt, it is not a Thaye."
+        }
+      ]
+    },
+    {
+      "name": "The Mimic",
+      "shortFact": "Copies other ghosts / Fake orbs",
+      "speed": "Varies",
+      "sanity": "Varies",
+      "losSpeedup": "Varies",
+      "evidence": [
+        "Spirit Box",
+        "Ultraviolet",
+        "Freezing Temperatures",
+        "Ghost Orb"
+      ],
+      "forcedEvidence": "Ghost Orb",
+      "canBe": [
+        "slow",
+        "normal",
+        "fast"
+      ],
+      "canHunt": [
+        "veryearly",
+        "early",
+        "normal",
+        "late"
+      ],
+      "tell": "TELLS\n• Will always show Ghost Orbs as an additional fake evidence, even on 0 evidence.\n• Mimics a different ghost every 30 - 120 seconds, taking on all behaviors, tells, and abilities of that ghost.\n\nBEHAVIORS\n• Copies the behavior, hunt sanity, and speed of the currently mimicked ghost.",
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "If you have Ghost Orbs while in 0 evidence, it is The Mimic."
+        },
+        {
+          "type": "mark",
+          "prefix": "Tell (Behavior): ",
+          "text": "If the behaviour of the ghost changes wildly between hunts, it is likely The Mimic."
+        }
+      ]
+    },
+    {
+      "name": "The Twins",
+      "shortFact": "Main & Decoy interactions / Alt speeds",
+      "speed": "1.5 / 1.9",
+      "sanity": "50%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "EMF Level 5",
+        "Spirit Box",
+        "Freezing Temperatures"
+      ],
+      "canBe": [
+        "slow",
+        "fast"
+      ],
+      "canHunt": [
+        "normal"
+      ],
+      "tell": "TELLS\n• Can do 2 interactions at the same time, one within its standard radius and the other in its extended radius.\n• Ghost speed during hunts will be either 1.5m/s (Main) or 1.9m/s (Decoy).\n\nBEHAVIORS\n• Triggering motion sensors, stepping in salt, and spirit box responses only occur at its physical main location.",
+      "speedGraph": {
+        "base": 1.5,
+        "max": 2.475,
+        "timeToMax": 13
+      },
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Behavior): ",
+          "text": "If the ghost alters between 1.5m/s and 1.9m/s, it is likely The Twins (the Obambo has very similar speeds, check your Obambo timer)."
+        }
+      ]
+    },
+    {
+      "name": "Wraith",
+      "shortFact": "Never steps in salt / Teleports",
+      "speed": "1.7",
+      "sanity": "50%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "EMF Level 5",
+        "Spirit Box",
+        "D.O.T.S Projector"
+      ],
+      "canBe": [
+        "normal"
+      ],
+      "canHunt": [
+        "normal"
+      ],
+      "tell": "TELLS\n• Will not touch nor interact with salt in any way.\n• Can teleport to a random player, leaving EMF 2 or EMF 5 at their new location.\n\nABILITIES\n• Will not be slowed down by tier 3 salt during a hunt.\n• Walks back to their favorite room after teleporting.",
+      "behaviors": [
+        {
+          "type": "ruleout",
+          "prefix": "Tell (Definitive): ",
+          "text": "If the ghost steps in Salt, it is not a Wraith."
+        },
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "If during a hunt or event you see the ghost walk through Salt without disturbing it, it is a Wraith (watch out for enraged Gallu)."
+        }
+      ]
+    },
+    {
+      "name": "Yokai",
+      "shortFact": "Deaf from far / Can hunt early if talking",
+      "speed": "1.7",
+      "sanity": "50% - 80%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "Spirit Box",
+        "Ghost Orb",
+        "D.O.T.S Projector"
+      ],
+      "canBe": [
+        "normal"
+      ],
+      "canHunt": [
+        "veryearly",
+        "early",
+        "normal"
+      ],
+      "tell": "TELLS\n• Hearing/detection distance is 2.5m and less during hunts.\n• Talking in the same room as a Yokai greatly angers it, causing it to hunt up to 80% average sanity.\n\nBEHAVIORS\n• Will start events at 2.5m from the music box instead of the standard 5m.\n• Ends music box event when the head of the ghost is 0.5m away from the music box instead of the standard 1m.\n• More active when talking near it.",
+      "behaviors": [
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "If during the hunt, the ghost appears to be deaf and doesn't come to you when you speak or press the radio button when within the usual detection range, it is a Yokai."
+        }
+      ]
+    },
+    {
+      "name": "Yurei",
+      "shortFact": "Can only fully open/close doors",
+      "speed": "1.7",
+      "sanity": "50%",
+      "losSpeedup": "Yes",
+      "evidence": [
+        "Ghost Orb",
+        "Freezing Temperatures",
+        "D.O.T.S Projector"
+      ],
+      "canBe": [
+        "normal"
+      ],
+      "canHunt": [
+        "normal"
+      ],
+      "tell": "TELLS\n• Only ghost that can close or interact with an exit door outside of a hunt/event.\n• Incensing the ghost will trap the ghost in its room for the duration of the incense effect (90s).\n\nBEHAVIORS\n• Must fully open / shut a door when doing door interactions (outside of a hunt).\n• Cannot give DOTS evidence while under the effects of an incense.\n\nABILITIES\n• Can shut a door and drop sanity of nearby players by 15%.",
+      "behaviors": [
+        {
+          "type": "ruleout",
+          "prefix": "Tell (Definitive): ",
+          "text": "If the ghost does an interaction with a door that doesn't result in either a full open or shut, it is not a Yurei."
+        },
+        {
+          "type": "ruleout",
+          "prefix": "Tell (Definitive): ",
+          "text": "If you Smudge the ghost and it triggers a motion sensor or steps in Salt outside of the ghost room before 90s passes, it is not a Yurei."
+        }
+      ]
+    }
+  ]
+}

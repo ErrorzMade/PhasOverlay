@@ -1,0 +1,27 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio / Rider / user-specific
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Publish profiles contain local machine paths
+**/PublishProfiles/
+*.pubxml
+*.pubxml.user
+
+# Local app data / settings
+settings.txt
+
+# Private working notes for Claude (never publish)
+CLAUDE.md
+
+# OS cruft
+Thumbs.db
+Desktop.ini
+.DS_Store
