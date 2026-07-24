@@ -1,4 +1,4 @@
-<sub>PhasOverlay never reads from, writes to, or otherwise interacts with the Phasmophobia game process. Every timer and toggle is triggered manually by you, via hotkeys. It's an overlay, not a cheat.</sub>
+<sub>⚠ PhasOverlay never reads from, writes to, or otherwise interacts with the Phasmophobia game process. Every timer and toggle is triggered manually by you, via hotkeys.</sub>
 
 # Welcome To PhasOverlay
 <img width="2447" height="936" alt="overviewimage" src="https://github.com/user-attachments/assets/cd48b864-7e14-4dff-9e94-0fcaed3c82e5" />
