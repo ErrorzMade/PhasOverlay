@@ -21,6 +21,9 @@ settings.txt
 # Private working notes for Claude (never publish)
 CLAUDE.md
 
+# Claude Code local session/permission state — can contain local machine paths
+.claude/
+
 # OS cruft
 Thumbs.db
 Desktop.ini
