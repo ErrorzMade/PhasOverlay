@@ -33,6 +33,11 @@ Phasmophobia and all related names, marks and game content are the property of K
 or associated with Kinetic Games.** It does not read from, write to, inject into, or otherwise
 interact with the game process — every action is triggered manually by the user via hotkeys.
 
+The seven evidence icons in `Images/` (`dots.png`, `emf5.png`, `freezingtemps.png`, `ghostorb.png`,
+`ghostwriting.png`, `spiritbox.png`, `ultraviolet.png`) are sourced from Phasmophobia itself and are
+Kinetic Games' assets, used here unmodified for identification purposes within this fan tool. They
+are not covered by the AGPLv3 grant above — see "Scope of this licence" below.
+
 ---
 
 ## Scope of this licence
