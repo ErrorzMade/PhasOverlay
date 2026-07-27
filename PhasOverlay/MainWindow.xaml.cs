@@ -195,6 +195,8 @@ namespace PhasOverlay
         }
 
         private SettingsWindow _settingsWin = null;
+        private UpdateWindow _updateWin = null;
+        private bool _wasFirstRun;
         private EvidenceWindow _evidenceWin = null;
 
         // Parsed key-by-key so one malformed value can't abort the whole load. WriteAllLines isn't
@@ -254,6 +256,25 @@ namespace PhasOverlay
             _gameLoop.Start();
 
             _ = RefreshWeeklyAsync();
+            _ = CheckForAppUpdateAsync();
+        }
+
+        /// <summary>Shows the update prompt if a newer release is published. Notify-only.</summary>
+        private async Task CheckForAppUpdateAsync()
+        {
+            // The welcome flow already owns the screen on first run, and a fresh download is current.
+            if (_wasFirstRun) return;
+
+            var info = await UpdateService.CheckAsync();
+            if (info == null) return;
+
+            Dispatcher.Invoke(() =>
+            {
+                if (_updateWin != null) return;
+                _updateWin = new UpdateWindow(info);
+                _updateWin.Closed += (s, e) => _updateWin = null;
+                _updateWin.Show();
+            });
         }
 
         /// <summary>Pulls a newer weekly.json, re-applying + mirroring it if Weekly is active.</summary>
@@ -948,6 +969,7 @@ namespace PhasOverlay
             }
 
             bool isFirstRun = !File.Exists(configPath);
+            _wasFirstRun = isFirstRun;
 
             if (!isFirstRun)
             {
