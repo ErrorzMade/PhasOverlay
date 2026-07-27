@@ -609,19 +609,40 @@
                                                     <DataTemplate>
                                                         <!-- Compact text tag; the full evidence name is on the tooltip. -->
                                                         <Border Margin="0,0,3,0" VerticalAlignment="Center" CornerRadius="3"
-                                                                Background="#FF2A2A2E" Padding="4,1" ToolTip="{Binding FullName}">
+                                                                Padding="4,1" ToolTip="{Binding FullName}">
                                                             <Border.Style>
                                                                 <Style TargetType="Border">
+                                                                    <Setter Property="Background" Value="#FF2A2A2E"/>
                                                                     <Setter Property="BorderThickness" Value="0,0,0,0"/>
                                                                     <Setter Property="BorderBrush" Value="#FFB455FF"/>
                                                                     <Style.Triggers>
                                                                         <DataTrigger Binding="{Binding IsForcedVisible}" Value="True">
                                                                             <Setter Property="BorderThickness" Value="0,0,0,2"/>
                                                                         </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding State}" Value="1">
+                                                                            <Setter Property="Background" Value="#33B455FF"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding State}" Value="2">
+                                                                            <Setter Property="Background" Value="#33FF5555"/>
+                                                                        </DataTrigger>
                                                                     </Style.Triggers>
                                                                 </Style>
                                                             </Border.Style>
-                                                            <TextBlock Text="{Binding Label}" Foreground="#FFCCCCCC" FontSize="10" FontWeight="Bold"/>
+                                                            <TextBlock Text="{Binding Label}" FontSize="10" FontWeight="Bold">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Setter Property="Foreground" Value="#FFCCCCCC"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding State}" Value="1">
+                                                                                <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding State}" Value="2">
+                                                                                <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
                                                         </Border>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>

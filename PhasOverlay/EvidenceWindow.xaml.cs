@@ -32,6 +32,9 @@ namespace PhasOverlay
         public string FullName { get; set; } = string.Empty;
 
         public bool IsForcedVisible { get; set; } = false;
+
+        /// <summary>0 unset, 1 confirmed by the user, 2 ruled out by the user.</summary>
+        public int State { get; set; } = 0;
     }
 
     public class BehaviorItem
@@ -76,6 +79,21 @@ namespace PhasOverlay
             set { _isSpeedHighlighted = value; OnPropertyChanged(); }
         }
 
+        private List<string> _confirmedEvidence = new List<string>();
+        private List<string> _ruledOutEvidence = new List<string>();
+
+        /// <summary>
+        /// Tints the card's evidence tags to match the user's own toggles. Below 3 evidence a
+        /// ghost can hide evidence, so a surviving ghost may legitimately carry a ruled-out tag.
+        /// That is the point: it shows the ghost is still possible despite the rule-out.
+        /// </summary>
+        public void SetEvidenceStates(List<string> confirmed, List<string> ruledOut)
+        {
+            _confirmedEvidence = confirmed;
+            _ruledOutEvidence = ruledOut;
+            OnPropertyChanged(nameof(EvidenceIcons));
+        }
+
         public List<EvidenceIcon> EvidenceIcons
         {
             get
@@ -87,11 +105,17 @@ namespace PhasOverlay
                         continue;
 
                     bool isForced = (ev == ForcedEvidence && ShowForcedUnderline);
+
+                    int state = 0;
+                    if (_confirmedEvidence.Contains(ev)) state = 1;
+                    else if (_ruledOutEvidence.Contains(ev)) state = 2;
+
                     icons.Add(new EvidenceIcon
                     {
                         Label = ShortEvidenceLabel(ev),
                         FullName = ev,
-                        IsForcedVisible = isForced
+                        IsForcedVisible = isForced,
+                        State = state
                     });
                 }
                 return icons;
@@ -577,8 +601,95 @@ namespace PhasOverlay
             catch { }
         }
 
+        private struct FilterCriteria
+        {
+            public bool Speed, Slow, Normal, Fast;
+            public bool Hunt, HuntVeryEarly, HuntEarly, HuntNormal, HuntLate;
+        }
+
+        /// <summary>
+        /// Whether one ghost survives the current evidence, speed and hunt filters. Extracted so
+        /// the "could this evidence still happen" test runs the exact same rules as the real
+        /// filter, including the Mimic's fake orb and the forced-evidence handling below 3.
+        /// </summary>
+        private bool GhostPassesFilters(GhostData ghost, List<string> confirmed, List<string> ruledOut, FilterCriteria f)
+        {
+            foreach (var ev in confirmed)
+            {
+                if (!ghost.EvidencePool.Contains(ev)) return false;
+            }
+
+            foreach (var ev in ruledOut)
+            {
+                if (_evidenceGivenLimit == 3)
+                {
+                    if (ghost.EvidencePool.Contains(ev)) return false;
+                }
+                else
+                {
+                    if (ghost.ForcedEvidence == ev) return false;
+                }
+            }
+
+            int actualCountForGhost = confirmed.Count;
+            if (ghost.Name == "The Mimic" && confirmed.Contains("Ghost Orb"))
+            {
+                actualCountForGhost--;
+            }
+            if (actualCountForGhost > _evidenceGivenLimit) return false;
+
+            if (_evidenceGivenLimit > 0 && _evidenceGivenLimit < 3 && !string.IsNullOrEmpty(ghost.ForcedEvidence) && ghost.Name != "The Mimic")
+            {
+                if (actualCountForGhost >= _evidenceGivenLimit && !confirmed.Contains(ghost.ForcedEvidence)) return false;
+            }
+
+            if (f.Speed)
+            {
+                bool speedMatch = false;
+                if (f.Slow && ghost.CanBeSlow) speedMatch = true;
+                if (f.Normal && ghost.CanBeNormal) speedMatch = true;
+                if (f.Fast && ghost.CanBeFast) speedMatch = true;
+
+                if (!speedMatch) return false;
+            }
+
+            if (f.Hunt)
+            {
+                bool huntMatch = false;
+                if (f.HuntVeryEarly && ghost.CanHuntVeryEarly) huntMatch = true;
+                if (f.HuntEarly && ghost.CanHuntEarly) huntMatch = true;
+                if (f.HuntNormal && ghost.CanHuntNormal) huntMatch = true;
+                if (f.HuntLate && ghost.CanHuntLate) huntMatch = true;
+
+                if (!huntMatch) return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>Would confirming this evidence still leave at least one ghost alive?</summary>
+        private bool AnyGhostPossibleWith(string evidence, List<string> confirmed, List<string> ruledOut, FilterCriteria f)
+        {
+            var test = new List<string>(confirmed) { evidence };
+
+            foreach (var ghost in _masterGhostList)
+            {
+                if (GhostPassesFilters(ghost, test, ruledOut, f)) return true;
+            }
+            return false;
+        }
+
+        // Evidence the engine ruled out on the user's behalf. Tracked so it can be undone the
+        // moment the combination that made it impossible changes, without clearing a real
+        // user-set rule-out.
+        private readonly HashSet<CheckBox> _autoRuledOut = new();
+
         private void ApplyFilteringEngine()
         {
+            // Recomputed from scratch every pass, so releasing a constraint unlocks them again.
+            foreach (var cb in _autoRuledOut) cb.IsChecked = null;
+            _autoRuledOut.Clear();
+
             var confirmed = new List<string>();
             var ruledOut = new List<string>();
             var confirmedBoxes = new List<CheckBox>();
@@ -609,69 +720,28 @@ namespace PhasOverlay
             bool filterHuntNormal = TglHuntNormal.IsChecked == true;
             bool filterHuntLate = TglHuntLate.IsChecked == true;
 
+            var criteria = new FilterCriteria
+            {
+                Speed = filterSpeed,
+                Slow = filterSlow,
+                Normal = filterNormal,
+                Fast = filterFast,
+                Hunt = filterHunt,
+                HuntVeryEarly = filterHuntVeryEarly,
+                HuntEarly = filterHuntEarly,
+                HuntNormal = filterHuntNormal,
+                HuntLate = filterHuntLate
+            };
+
             var visibleGhosts = new List<GhostData>();
             bool mimicIsValid = false;
 
             foreach (var ghost in _masterGhostList)
             {
                 ghost.ShowForcedUnderline = _evidenceGivenLimit <= 2;
+                ghost.SetEvidenceStates(confirmed, ruledOut);
 
-                bool isValid = true;
-
-                foreach (var ev in confirmed)
-                {
-                    if (!ghost.EvidencePool.Contains(ev)) { isValid = false; break; }
-                }
-                if (!isValid) continue;
-
-                foreach (var ev in ruledOut)
-                {
-                    if (_evidenceGivenLimit == 3)
-                    {
-                        if (ghost.EvidencePool.Contains(ev)) { isValid = false; break; }
-                    }
-                    else
-                    {
-                        if (ghost.ForcedEvidence == ev) { isValid = false; break; }
-                    }
-                }
-                if (!isValid) continue;
-
-                int actualCountForGhost = confirmed.Count;
-                if (ghost.Name == "The Mimic" && confirmed.Contains("Ghost Orb"))
-                {
-                    actualCountForGhost--;
-                }
-                if (actualCountForGhost > _evidenceGivenLimit)
-                {
-                    continue;
-                }
-
-                if (_evidenceGivenLimit > 0 && _evidenceGivenLimit < 3 && !string.IsNullOrEmpty(ghost.ForcedEvidence) && ghost.Name != "The Mimic")
-                {
-                    if (actualCountForGhost >= _evidenceGivenLimit && !confirmed.Contains(ghost.ForcedEvidence)) continue;
-                }
-
-                if (filterSpeed)
-                {
-                    bool speedMatch = false;
-                    if (filterSlow && ghost.CanBeSlow) speedMatch = true;
-                    if (filterNormal && ghost.CanBeNormal) speedMatch = true;
-                    if (filterFast && ghost.CanBeFast) speedMatch = true;
-
-                    if (!speedMatch) continue;
-                }
-
-                if (filterHunt)
-                {
-                    bool huntMatch = false;
-                    if (filterHuntVeryEarly && ghost.CanHuntVeryEarly) huntMatch = true;
-                    if (filterHuntEarly && ghost.CanHuntEarly) huntMatch = true;
-                    if (filterHuntNormal && ghost.CanHuntNormal) huntMatch = true;
-                    if (filterHuntLate && ghost.CanHuntLate) huntMatch = true;
-
-                    if (!huntMatch) continue;
-                }
+                if (!GhostPassesFilters(ghost, confirmed, ruledOut, criteria)) continue;
 
                 if (ghost.Name == "The Mimic") mimicIsValid = true;
                 visibleGhosts.Add(ghost);
@@ -719,6 +789,16 @@ namespace PhasOverlay
                         {
                             canEnable = true;
                         }
+                    }
+
+                    // Only at 3 evidence. Below that a ghost can hide evidence, so "no ghost has
+                    // this" is not the same as "it cannot be this" and locking it would be wrong.
+                    if (canEnable && _evidenceGivenLimit == 3
+                        && !AnyGhostPossibleWith(evName, confirmed, ruledOut, criteria))
+                    {
+                        cb.IsChecked = false;
+                        _autoRuledOut.Add(cb);
+                        canEnable = false;
                     }
 
                     cb.IsEnabled = canEnable;
