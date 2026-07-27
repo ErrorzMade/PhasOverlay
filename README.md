@@ -7,7 +7,7 @@
 ### - Hunt, cooldown & smudge timers
 ### - Ghost speed tracking (tap to footsteps) & LOS visualisers
 ### - Evidence tracker that rules out ghosts by evidence, speed & behaviours
-### - Weekly challenge presets (updated weekly)
+### - Weekly challenge presets
 ### - Fully customisable hotkey support
 ### - Fully customisable UI: change opacity, size and location to fit your preferences
 
