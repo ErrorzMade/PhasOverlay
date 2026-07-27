@@ -73,6 +73,13 @@ namespace PhasOverlay
         // Remote checks are skipped while this is still the placeholder URL.
         public static bool RemoteConfigured => !RemoteUrl.Contains("USERNAME");
 
+        // Highest ghosts.json layout this build can read. Bump only when the file's *shape* changes
+        // in a way old readers can't handle, never for content edits (new ghosts, fixed values).
+        public const int MaxSupportedSchema = 1;
+
+        /// <summary>True once a ghosts.json declaring a newer schema has been refused.</summary>
+        public static bool DataTooNew { get; private set; }
+
         public static readonly JsonSerializerOptions Json = new()
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -160,12 +167,24 @@ namespace PhasOverlay
             catch { return false; }
         }
 
+        /// <summary>
+        /// A file is usable only if this build understands its layout. Without the schema gate a
+        /// future restructured file still deserializes (unknown fields are ignored), passes the
+        /// count check, and gets cached, leaving a permanently blank tracker.
+        /// </summary>
         private static bool IsValid(string json)
         {
             try
             {
                 var file = JsonSerializer.Deserialize<GhostFileDto>(json, Json);
-                return file?.Ghosts != null && file.Ghosts.Count > 0;
+                if (file?.Ghosts == null || file.Ghosts.Count == 0) return false;
+
+                if (file.SchemaVersion > MaxSupportedSchema)
+                {
+                    DataTooNew = true;
+                    return false;
+                }
+                return true;
             }
             catch { return false; }
         }

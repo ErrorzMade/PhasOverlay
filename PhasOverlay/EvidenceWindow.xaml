@@ -516,11 +516,22 @@
                 <Grid Grid.Column="1">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
+                    <Border x:Name="StaleDataBar" Grid.Row="0" Background="#22FF5555" BorderBrush="#55FF5555" BorderThickness="0,0,0,1"
+                            Padding="25,10,25,10" Visibility="Collapsed">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="⚠" Foreground="{StaticResource DangerBrush}" FontSize="14" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <TextBlock x:Name="StaleDataText" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                            <Button x:Name="StaleDataButton" Content="GET UPDATE" Style="{StaticResource ModernButton}" Height="24" Width="100"
+                                    FontSize="10" Margin="14,0,0,0" VerticalAlignment="Center" Click="StaleData_Click"/>
+                        </StackPanel>
+                    </Border>
+
                     <!-- Match setup lives here (not the left panel) so it never squeezes the evidence controls. -->
-                    <Border x:Name="MatchBar" Grid.Row="0" Background="Transparent" BorderBrush="#FF252528" BorderThickness="0,0,0,1" Padding="25,12,25,12" Visibility="Collapsed">
+                    <Border x:Name="MatchBar" Grid.Row="1" Background="Transparent" BorderBrush="#FF252528" BorderThickness="0,0,0,1" Padding="25,12,25,12" Visibility="Collapsed">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <StackPanel Width="150" Margin="0,0,12,0">
                                 <TextBlock Text="DIFFICULTY" Foreground="#FF888888" FontSize="10" FontWeight="Bold" Margin="2,0,0,3"/>
@@ -563,7 +574,7 @@
                         </StackPanel>
                     </Border>
 
-                    <ScrollViewer x:Name="GhostScrollViewer" Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="25,10,25,25">
+                    <ScrollViewer x:Name="GhostScrollViewer" Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="25,10,25,25">
                     <ItemsControl x:Name="GhostItemsControl">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>

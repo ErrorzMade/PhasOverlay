@@ -61,6 +61,12 @@ namespace PhasOverlay
 
         public static bool RemoteConfigured => !RemoteUrl.Contains("USERNAME");
 
+        // See GhostDataService.MaxSupportedSchema. The two files version independently.
+        public const int MaxSupportedSchema = 1;
+
+        /// <summary>True once a weekly.json declaring a newer schema has been refused.</summary>
+        public static bool DataTooNew { get; private set; }
+
         // All week arithmetic runs in UTC so DST (GMT<->BST) never shifts the boundary.
         private const DayOfWeek WeeklyResetDay = DayOfWeek.Monday;
 
@@ -115,6 +121,12 @@ namespace PhasOverlay
             {
                 var dto = JsonSerializer.Deserialize<WeeklyDto>(json, GhostDataService.Json);
                 if (dto == null) return null;
+
+                if (dto.SchemaVersion > MaxSupportedSchema)
+                {
+                    DataTooNew = true;
+                    return null;
+                }
 
                 if (!DateTime.TryParse(dto.Date, CultureInfo.InvariantCulture,
                         DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var parsedDate))

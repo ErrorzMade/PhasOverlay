@@ -262,10 +262,12 @@ namespace PhasOverlay
         private async Task RefreshWeeklyDataAsync()
         {
             bool changed = await WeeklyDataService.CheckForUpdatesAsync();
-            if (!changed) return;
 
             Dispatcher.Invoke(() =>
             {
+                RefreshStaleDataNotice();
+                if (!changed) return;
+
                 RefreshWeeklyComboItem();
                 if (_main.DifficultyIndex == MainWindow.DiffWeekly)
                 {
@@ -419,13 +421,50 @@ namespace PhasOverlay
         private async Task RefreshGhostDataAsync()
         {
             bool changed = await GhostDataService.CheckForUpdatesAsync();
-            if (!changed) return;
 
             Dispatcher.Invoke(() =>
             {
+                // Runs even when nothing changed: a refused too-new file also reports "not changed".
+                RefreshStaleDataNotice();
+                if (!changed) return;
+
                 LoadGhostData();
                 ApplyFilteringEngine();
             });
+        }
+
+        /// <summary>
+        /// Shows the banner when remote data declares a schema this build can't read. The data
+        /// itself still works (last good copy), so this explains the staleness rather than an
+        /// apparently broken tracker.
+        /// </summary>
+        private void RefreshStaleDataNotice()
+        {
+            bool ghosts = GhostDataService.DataTooNew;
+            bool weekly = WeeklyDataService.DataTooNew;
+            if (!ghosts && !weekly)
+            {
+                StaleDataBar.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            string what = ghosts && weekly ? "Ghost and weekly challenge data"
+                        : ghosts ? "Ghost data"
+                        : "Weekly challenge data";
+
+            StaleDataText.Text = $"{what} needs a newer version of PhasOverlay. "
+                               + "You're still seeing the last version this build can read.";
+            StaleDataBar.Visibility = Visibility.Visible;
+        }
+
+        private void StaleData_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(
+                    new System.Diagnostics.ProcessStartInfo(UpdateService.DefaultReleasesUrl) { UseShellExecute = true });
+            }
+            catch { }
         }
 
         public void SetHighlightedSpeed(double tappedSpeed)
