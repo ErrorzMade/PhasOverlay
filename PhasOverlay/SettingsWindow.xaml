@@ -313,7 +313,9 @@
                         <ComboBoxItem Content="Top Right"/>
                     </ComboBox>
 
-                    <TextBlock Text="DISPLAY MODE" Style="{StaticResource SettingLabel}"/>
+                    <TextBlock x:Name="DisplayLabel" Text="DISPLAY SETTINGS" Style="{StaticResource SettingLabel}"/>
+                    <ComboBox x:Name="CmbDisplay" FontSize="14" Padding="8,6" Margin="0,0,0,16" SelectionChanged="Display_Changed"/>
+
                     <CheckBox x:Name="ChkPersistentOverlay" Content="Persistent Overlay (Always Show)" Margin="0,0,0,10" Style="{StaticResource ModernSwitch}" Click="PersistentMode_Click"/>
                     <CheckBox x:Name="ChkAlwaysShowEvidence" Content="Always Show Evidence" Style="{StaticResource ModernSwitch}" Click="AlwaysShowEvidence_Click"/>
 

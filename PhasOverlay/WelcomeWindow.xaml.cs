@@ -38,6 +38,8 @@ namespace PhasOverlay
             Difficulty_SelectionChanged(null, null);
 
             _ = RefreshWeeklyDataAsync();
+
+            this.Loaded += (s, e) => DisplayService.CenterOn(this, _main.DisplayIndex);
         }
 
         private void UpdateSliderLabels()

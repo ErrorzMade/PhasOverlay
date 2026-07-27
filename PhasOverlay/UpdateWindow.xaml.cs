@@ -8,10 +8,12 @@ namespace PhasOverlay
     {
         private readonly UpdateInfo _info;
 
-        public UpdateWindow(UpdateInfo info)
+        public UpdateWindow(UpdateInfo info, int monitorIndex)
         {
             InitializeComponent();
             _info = info;
+
+            this.Loaded += (s, e) => DisplayService.CenterOn(this, monitorIndex);
 
             var current = UpdateService.CurrentVersion;
             VersionLine.Text = $"PhasOverlay {info.VersionLabel} is available. "

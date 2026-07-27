@@ -239,6 +239,8 @@ namespace PhasOverlay
 
             _ = RefreshGhostDataAsync();
             _ = RefreshWeeklyDataAsync();
+
+            this.Loaded += (s, e) => DisplayService.CenterOn(this, _main.DisplayIndex);
         }
 
         /// <summary>Shows the Weekly combo item with its label only when a weekly is cached.</summary>

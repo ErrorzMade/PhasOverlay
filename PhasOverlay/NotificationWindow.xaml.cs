@@ -51,9 +51,14 @@ namespace PhasOverlay
             SetWindowLong(hwnd, GWL_EXSTYLE, ex | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE);
         }
 
+        /// <summary>Display the notification follows. Kept in sync with the overlay's own setting.</summary>
+        public int DisplayIndex { get; set; } = DisplayService.PrimaryIndex();
+
+        public void RepositionNow() => Reposition();
+
         private void Reposition()
         {
-            var wa = SystemParameters.WorkArea;
+            var wa = DisplayService.WorkAreaFor(DisplayIndex);
             this.Left = wa.Left + (wa.Width - this.ActualWidth) / 2;
             this.Top = wa.Bottom - this.ActualHeight - 8;
         }

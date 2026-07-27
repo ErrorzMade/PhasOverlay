@@ -197,6 +197,10 @@ namespace PhasOverlay
         private SettingsWindow _settingsWin = null;
         private UpdateWindow _updateWin = null;
         private bool _wasFirstRun;
+
+        // Which monitor the overlay lives on. Out-of-range values fall back to primary, so a
+        // config written on a two-monitor setup still works after one is unplugged.
+        public int DisplayIndex = DisplayService.PrimaryIndex();
         private EvidenceWindow _evidenceWin = null;
 
         // Parsed key-by-key so one malformed value can't abort the whole load. WriteAllLines isn't
@@ -248,6 +252,7 @@ namespace PhasOverlay
             this.SizeChanged += (s, e) => UpdateWindowPosition();
 
             _notifWin = new NotificationWindow();
+            _notifWin.DisplayIndex = DisplayIndex;
             _notifWin.Show();
 
             _gameLoop = new DispatcherTimer();
@@ -271,7 +276,7 @@ namespace PhasOverlay
             Dispatcher.Invoke(() =>
             {
                 if (_updateWin != null) return;
-                _updateWin = new UpdateWindow(info);
+                _updateWin = new UpdateWindow(info, DisplayIndex);
                 _updateWin.Closed += (s, e) => _updateWin = null;
                 _updateWin.Show();
             });
@@ -374,7 +379,7 @@ namespace PhasOverlay
 
         public void UpdateWindowPosition()
         {
-            var workArea = SystemParameters.WorkArea;
+            var workArea = DisplayService.WorkAreaFor(DisplayIndex);
 
             this.Left = workArea.Left;
             this.Top = workArea.Top;
@@ -383,6 +388,19 @@ namespace PhasOverlay
             // Panels sit along the top, so the window only spans a top band; the rest of
             // the screen stays click-through. Height is generous so nothing clips at max scale.
             this.Height = Math.Min(workArea.Height, Math.Max(720, workArea.Height * 0.6));
+        }
+
+        /// <summary>Moves the overlay and its notification to the chosen monitor.</summary>
+        public void ApplyDisplayChange(int index)
+        {
+            DisplayIndex = index;
+            UpdateWindowPosition();
+
+            if (_notifWin != null)
+            {
+                _notifWin.DisplayIndex = index;
+                _notifWin.RepositionNow();
+            }
         }
 
         private bool IsGameOrOverlayFocused()
@@ -1013,6 +1031,7 @@ namespace PhasOverlay
                         else SpeedMultiplierSetting = 1.0;
 
                         OverlayPosition = ReadInt(dict, "Position", OverlayPosition);
+                        DisplayIndex = ReadInt(dict, "Display", DisplayIndex);
 
                         if (dict.ContainsKey("ModulesActive"))
                         {

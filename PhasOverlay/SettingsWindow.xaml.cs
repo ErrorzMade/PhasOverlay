@@ -40,6 +40,7 @@ namespace PhasOverlay
             else SpeedCombo.SelectedIndex = 2;
 
             CmbPosition.SelectedIndex = _overlay.OverlayPosition;
+            PopulateDisplays();
             OpacitySlider.Value = _overlay.BgBrush.Opacity;
             ScaleSlider.Value = _overlay.OverlayScale.ScaleX;
 
@@ -73,7 +74,35 @@ namespace PhasOverlay
             _isLoaded = true;
             Difficulty_SelectionChanged(null, null);
 
+            this.Loaded += (s, e) => DisplayService.CenterOn(this, _overlay.DisplayIndex);
+
             _ = RefreshWeeklyDataAsync();
+        }
+
+        /// <summary>Fills the display list. The picker hides on a single-display machine, but the
+        /// section header stays since it also covers the mode toggles below it.</summary>
+        private void PopulateDisplays()
+        {
+            var displays = DisplayService.GetDisplays();
+
+            CmbDisplay.Items.Clear();
+            foreach (var d in displays)
+                CmbDisplay.Items.Add(new ComboBoxItem { Content = d.Label });
+
+            int idx = _overlay.DisplayIndex;
+            if (idx < 0 || idx >= displays.Count) idx = DisplayService.PrimaryIndex();
+            CmbDisplay.SelectedIndex = idx;
+
+            CmbDisplay.Visibility = displays.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void Display_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (!_isLoaded || _overlay == null || CmbDisplay.SelectedIndex < 0) return;
+
+            _overlay.ApplyDisplayChange(CmbDisplay.SelectedIndex);
+            _overlay.LastSettingsPreviewTime = DateTime.Now;
+            _overlay.RefreshCompactModeVisuals(true);
         }
 
         /// <summary>Shows the Weekly combo item with its label only when a weekly is cached.</summary>
@@ -521,6 +550,7 @@ namespace PhasOverlay
                 "",
                 "[Overlay Display]",
                 $"Position={posIdx}",
+                $"Display={(CmbDisplay.SelectedIndex >= 0 ? CmbDisplay.SelectedIndex : DisplayService.PrimaryIndex())}",
                 $"Opacity={OpacitySlider.Value}",
                 $"Scale={ScaleSlider.Value}",
                 $"CompactMode={(ChkPersistentOverlay.IsChecked == false ? 1 : 0)}",
