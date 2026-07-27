@@ -11,16 +11,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Images\dots.png" />
-    <None Remove="Images\emf5.png" />
-    <None Remove="Images\freezingtemps.png" />
-    <None Remove="Images\ghostorb.png" />
-    <None Remove="Images\ghostwriting.png" />
-    <None Remove="Images\spiritbox.png" />
-    <None Remove="Images\ultraviolet.png" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="System.Speech" Version="10.0.9" />
   </ItemGroup>
 
@@ -29,30 +19,6 @@
     <Content Include="ghosts.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Resource Include="Images\dots.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Images\emf5.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Images\freezingtemps.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Images\ghostorb.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Images\ghostwriting.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Images\spiritbox.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Images\ultraviolet.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
   </ItemGroup>
 
   <ItemGroup>

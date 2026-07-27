@@ -124,7 +124,7 @@ namespace PhasOverlay
 
                 TryItBox.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#20B455FF"));
                 TryItBox.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFB455FF"));
-                TryItText.Text = "Nice — it's counting down at the top of your screen.";
+                TryItText.Text = "Nice! It's counting down at the top of your screen.";
                 TryItKey.Visibility = Visibility.Collapsed;
                 TryItText2.Visibility = Visibility.Collapsed;
             }

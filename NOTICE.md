@@ -16,27 +16,26 @@ PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
 
 ## Third-party attribution
 
-### Phasmophobia Cheat Sheet — Ty Bayn (Zero-Network)
+### Phasmophobia Cheat Sheet by Ty Bayn (Zero-Network)
 
 <https://tybayn.github.io/phasmo-cheat-sheet/> · <https://github.com/tybayn/phasmo-cheat-sheet>
 
-Licensed **GNU AGPLv3**. PhasOverlay's ghost information (the roster in `ghosts.json` — evidence,
+Licensed **GNU AGPLv3**. PhasOverlay's ghost information (the roster in `ghosts.json`: evidence,
 speeds, sanity thresholds and behavioural tells) is derived from that cheat sheet.
 PhasOverlay is licensed under the AGPLv3 in part to remain consistent with this upstream work.
 
-### Phasmophobia — Kinetic Games
+### Phasmophobia by Kinetic Games
 
 <https://www.kineticgames.co.uk/>
 
 Phasmophobia and all related names, marks and game content are the property of Kinetic Games.
 **PhasOverlay is an unofficial, fan-made companion tool. It is not affiliated with, endorsed by,
 or associated with Kinetic Games.** It does not read from, write to, inject into, or otherwise
-interact with the game process — every action is triggered manually by the user via hotkeys.
+interact with the game process. Every action is triggered manually by the user via hotkeys.
 
-The seven evidence icons in `Images/` (`dots.png`, `emf5.png`, `freezingtemps.png`, `ghostorb.png`,
-`ghostwriting.png`, `spiritbox.png`, `ultraviolet.png`) are sourced from Phasmophobia itself and are
-Kinetic Games' assets, used here unmodified for identification purposes within this fan tool. They
-are not covered by the AGPLv3 grant above — see "Scope of this licence" below.
+**PhasOverlay ships no Phasmophobia game assets.** Evidence types are referred to by name only.
+Earlier builds bundled in-game evidence icons; these were removed at Kinetic Games' confirmation
+that their assets may not be redistributed.
 
 ---
 

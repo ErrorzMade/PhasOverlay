@@ -245,7 +245,7 @@
                     <!-- The behaviours a new user can't discover on their own -->
                     <Border Background="#FF161618" BorderBrush="#FF252528" BorderThickness="1" CornerRadius="8" Padding="20,9" Margin="0,8,0,0">
                         <TextBlock Foreground="#FFAAAAAA" FontSize="11.5" TextWrapping="Wrap" LineHeight="16">
-                            <Run Foreground="#FFB455FF" FontWeight="Bold" Text="•"/><Run Text=" Timers only show while they're running — the overlay stays out of your way until you need it."/><LineBreak/>
+                            <Run Foreground="#FFB455FF" FontWeight="Bold" Text="•"/><Run Text=" Timers only show while they're running, so the overlay stays out of your way until you need it."/><LineBreak/>
                             <Run Foreground="#FFB455FF" FontWeight="Bold" Text="•"/><Run Text=" Your clicks pass straight through it, so it never blocks the game underneath."/><LineBreak/>
                             <Run Foreground="#FFB455FF" FontWeight="Bold" Text="•"/><Run Text=" In the evidence tracker, click a box once to confirm it, twice to rule it out."/>
                         </TextBlock>

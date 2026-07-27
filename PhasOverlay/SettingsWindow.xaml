@@ -392,7 +392,7 @@
 
                         <Border Background="#FF2A2A2E" CornerRadius="6" Padding="15" Margin="0,0,0,20">
                             <Grid>
-                                <!-- MAIN HOTKEYS — grouped by purpose -->
+                                <!-- MAIN HOTKEYS, grouped by purpose -->
                                 <StackPanel x:Name="MainHotkeysGrid" Visibility="Visible">
                                     <StackPanel.Resources>
                                         <Style x:Key="BindGroupHeader" TargetType="TextBlock">

@@ -25,7 +25,12 @@ namespace PhasOverlay
 
     public class EvidenceIcon
     {
-        public string ImagePath { get; set; } = string.Empty;
+        /// <summary>Short tag shown on the ghost card (e.g. "DOTS"). Space is tight there.</summary>
+        public string Label { get; set; } = string.Empty;
+
+        /// <summary>Full evidence name, surfaced as the tooltip so the tag is never ambiguous.</summary>
+        public string FullName { get; set; } = string.Empty;
+
         public bool IsForcedVisible { get; set; } = false;
     }
 
@@ -81,22 +86,37 @@ namespace PhasOverlay
                     if (Name == "The Mimic" && ev == "Ghost Orb")
                         continue;
 
-                    string path = "";
-                    switch (ev)
-                    {
-                        case "EMF Level 5": path = "/Images/emf5.png"; break;
-                        case "D.O.T.S Projector": path = "/Images/dots.png"; break;
-                        case "Ultraviolet": path = "/Images/ultraviolet.png"; break;
-                        case "Freezing Temperatures": path = "/Images/freezingtemps.png"; break;
-                        case "Ghost Orb": path = "/Images/ghostorb.png"; break;
-                        case "Ghost Writing": path = "/Images/ghostwriting.png"; break;
-                        case "Spirit Box": path = "/Images/spiritbox.png"; break;
-                    }
-
                     bool isForced = (ev == ForcedEvidence && ShowForcedUnderline);
-                    icons.Add(new EvidenceIcon { ImagePath = path, IsForcedVisible = isForced });
+                    icons.Add(new EvidenceIcon
+                    {
+                        Label = ShortEvidenceLabel(ev),
+                        FullName = ev,
+                        IsForcedVisible = isForced
+                    });
                 }
                 return icons;
+            }
+        }
+
+        /// <summary>
+        /// Evidence tags shown on the ghost cards. Only the genuinely unambiguous abbreviations
+        /// are shortened (EMF/DOTS/UV). The rest stay close to the in-game wording, because
+        /// terse forms like "BOX"/"BOOK" were not clear enough. The full name is on each tag's
+        /// tooltip, and the detail modal always spells evidence out in full. An unrecognised
+        /// evidence type falls back to its own name rather than rendering blank.
+        /// </summary>
+        private static string ShortEvidenceLabel(string evidence)
+        {
+            switch (evidence)
+            {
+                case "EMF Level 5": return "EMF";
+                case "D.O.T.S Projector": return "DOTS";
+                case "Ultraviolet": return "UV";
+                case "Freezing Temperatures": return "FREEZING";
+                case "Ghost Orb": return "ORBS";
+                case "Ghost Writing": return "WRITING";
+                case "Spirit Box": return "SPIRIT BOX";
+                default: return evidence.ToUpperInvariant();
             }
         }
 
@@ -686,7 +706,7 @@ namespace PhasOverlay
         /// <summary>
         /// Feeds the overlay's POSSIBLE GHOSTS panel and refreshes the header count. Ghosts the
         /// user has manually ruled out (CardState 2) are dropped here rather than in the filtering
-        /// engine, so the tracker's own list keeps showing them struck through — that card is how
+        /// engine, so the tracker's own list keeps showing them struck through. That card is how
         /// you un-rule them out.
         /// </summary>
         private void PushPossibleGhostsToOverlay()
@@ -803,7 +823,7 @@ namespace PhasOverlay
 
             _main.RecomputeHuntDuration();
 
-            // For preset difficulties the Hunt tier is derived — reflect it back into the combo.
+            // For preset difficulties the Hunt tier is derived, so reflect it back into the combo.
             if (!custom)
             {
                 _loadingMatch = true;
@@ -1132,7 +1152,7 @@ namespace PhasOverlay
         /// <summary>
         /// Footstep interval (ms) for a given speed, matched to the tybayn phasmo cheat sheet's
         /// metronome: it uses BPM = 60 / (1/speed - 0.075), i.e. interval = 1000/speed - 75 ms.
-        /// The -75 ms offset is what our old plain 850/speed lacked — without it the cadence was
+        /// The -75 ms offset is what our old plain 850/speed lacked. Without it the cadence was
         /// slightly fast below 2.0 m/s and increasingly slow above it (noticeable at 3.0).
         /// </summary>
         private static double FootstepIntervalMs(double speed)
@@ -1159,8 +1179,8 @@ namespace PhasOverlay
                 try
                 {
                     // PeriodicTimer keeps a drift-free schedule; the actual play call must run on
-                    // the UI thread that opened the MCI aliases (MCI devices are thread-affine —
-                    // playing from another thread is silently ignored).
+                    // the UI thread that opened the MCI aliases. MCI devices are thread-affine, so
+                    // playing from another thread is silently ignored.
                     using var timer = new PeriodicTimer(interval);
                     while (await timer.WaitForNextTickAsync(token))
                     {

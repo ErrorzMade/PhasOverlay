@@ -136,7 +136,7 @@ namespace PhasOverlay
         {
             if (HuntTierLabel == null) return;
 
-            if (CmbDifficulty.SelectedIndex == MainWindow.DiffCustom) // Custom — the HUNT DURATION combo shows it
+            if (CmbDifficulty.SelectedIndex == MainWindow.DiffCustom) // Custom uses the HUNT DURATION combo instead
             {
                 HuntTierLabel.Visibility = Visibility.Collapsed;
                 return;
@@ -264,7 +264,7 @@ namespace PhasOverlay
 
             Key key = e.Key == Key.System ? e.SystemKey : e.Key;
 
-            // Wait for a real key — ignore a lone modifier press so the user can hold Shift.
+            // Wait for a real key. A lone modifier press is ignored so the user can hold Shift.
             if (key == Key.LeftShift || key == Key.RightShift || key == Key.LeftCtrl || key == Key.RightCtrl
                 || key == Key.LeftAlt || key == Key.RightAlt || key == Key.System)
                 return;

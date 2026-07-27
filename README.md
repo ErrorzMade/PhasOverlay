@@ -24,7 +24,7 @@
 ## Credits
 Some ghost information is sourced from the [Phasmophobia Cheat Sheet](https://tybayn.github.io/phasmo-cheat-sheet/).
 
-Evidence icons are sourced directly from Phasmophobia and are the property of Kinetic Games, used here unmodified for identification purposes.
+PhasOverlay ships no Phasmophobia game assets. Evidence types are referred to by name only.
 
 Phasmophobia is the property of [Kinetic Games](https://www.kineticgames.co.uk/). PhasOverlay is an unofficial, fan-made tool. It is not affiliated with, endorsed by, or associated with Kinetic Games.
 

@@ -69,6 +69,10 @@ namespace PhasOverlay
         public double MasterVolume = 1.0;
         public int EvidenceLimit = 3;
 
+        // At or below this many possible ghosts, the overlay's cards also list each ghost's
+        // evidence. That is the point where "what do I still need to find?" becomes the question.
+        private const int EvidenceTagThreshold = 4;
+
         // Kept in sync by Settings/Welcome/Evidence; these produce BaseHuntDuration.
         public int DifficultyIndex = 1;   // 0 Amateur .. 4 Insanity, 5 Weekly, 6 Custom
         public int MapSizeIndex = 0;      // 0 Small, 1 Medium, 2 Large
@@ -193,8 +197,8 @@ namespace PhasOverlay
         private SettingsWindow _settingsWin = null;
         private EvidenceWindow _evidenceWin = null;
 
-        // Parsed key-by-key so one malformed value can't abort the whole load (WriteAllLines isn't
-        // atomic — a kill mid-save can leave a half-written config).
+        // Parsed key-by-key so one malformed value can't abort the whole load. WriteAllLines isn't
+        // atomic, so a kill mid-save can leave a half-written config.
         private static int ReadInt(Dictionary<string, string> d, string key, int fallback)
         {
             return d.TryGetValue(key, out var s) && int.TryParse(s, out var v) ? v : fallback;
@@ -282,7 +286,7 @@ namespace PhasOverlay
 
         /// <summary>
         /// Adds/removes WS_EX_TRANSPARENT on the overlay window. This is the only thing that
-        /// makes clicks reach another process (Phasmophobia) — answering WM_NCHITTEST with
+        /// makes clicks reach another process (Phasmophobia). Answering WM_NCHITTEST with
         /// HTTRANSPARENT only falls through to windows on our own thread, which is useless here.
         /// </summary>
         private void ApplyClickThrough(bool enabled)
@@ -525,12 +529,22 @@ namespace PhasOverlay
             OverlayGhostList.Children.Clear();
 
             bool isSpeedActive = _recentTaps.Count > 1;
-            int shownCount = 0;
 
-            foreach (var ghost in ghosts)
+            // Materialise the visible set first so the card layout can depend on how many remain.
+            var shown = new List<GhostData>();
+            foreach (var g in ghosts)
             {
-                if (isSpeedActive && !ghost.IsSpeedHighlighted) continue;
-                shownCount++;
+                if (isSpeedActive && !g.IsSpeedHighlighted) continue;
+                shown.Add(g);
+            }
+
+            // Evidence tags only earn their vertical space once the list is short enough to act
+            // on. While a dozen ghosts are still possible they're noise, and the panel only fits
+            // ~2-3 cards before scrolling.
+            bool showTags = shown.Count <= EvidenceTagThreshold;
+
+            foreach (var ghost in shown)
+            {
 
                 Border ghostCard = new Border
                 {
@@ -565,6 +579,9 @@ namespace PhasOverlay
 
                 innerStack.Children.Add(ghostName);
                 innerStack.Children.Add(ghostFact);
+
+                if (showTags) innerStack.Children.Add(BuildEvidenceTagRow(ghost));
+
                 ghostCard.Child = innerStack;
 
                 ghostCard.MouseLeftButtonDown += (s, e) =>
@@ -579,9 +596,40 @@ namespace PhasOverlay
                 OverlayGhostList.Children.Add(ghostCard);
             }
 
-            if (HdrGhosts != null) HdrGhosts.Text = $"POSSIBLE GHOSTS: {shownCount}";
+            if (HdrGhosts != null) HdrGhosts.Text = $"POSSIBLE GHOSTS: {shown.Count}";
 
             RefreshCompactModeVisuals();
+        }
+
+        /// <summary>
+        /// Small evidence tags for an overlay ghost card. Mirrors the Evidence tracker's tags but
+        /// a point smaller to suit the narrower panel; wraps rather than clips if it ever overruns.
+        /// </summary>
+        private WrapPanel BuildEvidenceTagRow(GhostData ghost)
+        {
+            WrapPanel row = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 0) };
+
+            foreach (var ev in ghost.EvidenceIcons)
+            {
+                Border tag = new Border
+                {
+                    Background = GetBrush("#FF2A2A2E"),
+                    CornerRadius = new CornerRadius(3),
+                    Padding = new Thickness(4, 1, 4, 1),
+                    Margin = new Thickness(0, 0, 3, 3),
+                    ToolTip = ev.FullName,
+                    Child = new TextBlock
+                    {
+                        Text = ev.Label,
+                        Foreground = GetBrush("#FFAAAAAA"),
+                        FontSize = 9,
+                        FontWeight = FontWeights.Bold
+                    }
+                };
+                row.Children.Add(tag);
+            }
+
+            return row;
         }
 
         public void RefreshCompactModeVisuals(bool instant = false, bool noDelay = false)

@@ -36,7 +36,7 @@ namespace PhasOverlay
             get
             {
                 string d = Date.ToString("dd/MM/yy", CultureInfo.InvariantCulture);
-                return IsOutdated ? $"Weekly ({d} — outdated)" : $"Weekly ({d})";
+                return IsOutdated ? $"Weekly ({d}, outdated)" : $"Weekly ({d})";
             }
         }
 
@@ -45,14 +45,14 @@ namespace PhasOverlay
             get
             {
                 string t = string.IsNullOrWhiteSpace(Title) ? "This week's challenge" : Title;
-                if (FriendlyGhost) t += "\nFriendly ghost — no hunts this week.";
+                if (FriendlyGhost) t += "\nFriendly ghost, no hunts this week.";
                 return t;
             }
         }
     }
 
     /// <summary>
-    /// Owns weekly.json — same cache/pull-if-changed pipeline as <see cref="GhostDataService"/>,
+    /// Owns weekly.json. Same cache/pull-if-changed pipeline as <see cref="GhostDataService"/>,
     /// but with no bundled fallback (shipping one bakes in a stale week).
     /// </summary>
     public static class WeeklyDataService
