@@ -34,8 +34,6 @@ or associated with Kinetic Games.** It does not read from, write to, inject into
 interact with the game process. Every action is triggered manually by the user via hotkeys.
 
 **PhasOverlay ships no Phasmophobia game assets.** Evidence types are referred to by name only.
-Earlier builds bundled in-game evidence icons; these were removed at Kinetic Games' confirmation
-that their assets may not be redistributed.
 
 ---
 
