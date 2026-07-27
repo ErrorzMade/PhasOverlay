@@ -33,8 +33,6 @@ Phasmophobia and all related names, marks and game content are the property of K
 or associated with Kinetic Games.** It does not read from, write to, inject into, or otherwise
 interact with the game process. Every action is triggered manually by the user via hotkeys.
 
-**PhasOverlay ships no Phasmophobia game assets.** Evidence types are referred to by name only.
-
 ---
 
 ## Scope of this licence
