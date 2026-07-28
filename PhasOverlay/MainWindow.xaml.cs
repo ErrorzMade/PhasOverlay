@@ -650,9 +650,14 @@ namespace PhasOverlay
 
             foreach (var ev in ghost.EvidenceIcons)
             {
+                // Mirrors the tracker card tints. Neutral text stays dimmer here to suit the
+                // narrower panel.
+                string bg = ev.State == 1 ? "#33B455FF" : ev.State == 2 ? "#33FF5555" : "#FF2A2A2E";
+                string fg = ev.State == 1 ? "#FFB455FF" : ev.State == 2 ? "#FFFF5555" : "#FFAAAAAA";
+
                 Border tag = new Border
                 {
-                    Background = GetBrush("#FF2A2A2E"),
+                    Background = GetBrush(bg),
                     CornerRadius = new CornerRadius(3),
                     Padding = new Thickness(4, 1, 4, 1),
                     Margin = new Thickness(0, 0, 3, 3),
@@ -660,7 +665,7 @@ namespace PhasOverlay
                     Child = new TextBlock
                     {
                         Text = ev.Label,
-                        Foreground = GetBrush("#FFAAAAAA"),
+                        Foreground = GetBrush(fg),
                         FontSize = 9,
                         FontWeight = FontWeights.Bold
                     }
