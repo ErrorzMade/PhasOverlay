@@ -1,13 +1,13 @@
 <sub>⚠ PhasOverlay never reads from, writes to, or otherwise interacts with the Phasmophobia game process. Every timer and toggle is triggered manually by you, via hotkeys.</sub>
 
 # Welcome to PhasOverlay
-<img width="2447" height="936" alt="overviewimage" src="https://github.com/user-attachments/assets/cd48b864-7e14-4dff-9e94-0fcaed3c82e5" />
+<img width="2559" height="972" alt="image" src="https://github.com/user-attachments/assets/d8f10b50-cf78-400e-a43c-51177c14195c" />
 
 ## Features
 ### - Hunt, cooldown & smudge timers
 ### - Ghost speed tracking (tap to footsteps) & LOS visualisers
 ### - Evidence tracker that rules out ghosts by evidence, speed & behaviours
-### - Weekly challenge presets (updated weekly)
+### - Weekly challenge presets
 ### - Fully customisable hotkey support
 ### - Fully customisable UI: change opacity, size and location to fit your preferences
 
