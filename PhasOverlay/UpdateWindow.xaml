@@ -92,7 +92,7 @@
                     <TextBlock x:Name="NotesText" Foreground="{StaticResource TextMutedBrush}" FontSize="13" TextWrapping="Wrap"/>
                 </Border>
 
-                <TextBlock Text="Your settings and tracker data are kept when you update."
+                <TextBlock Text="Your settings are kept when you update."
                            Foreground="{StaticResource TextFaintBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,14,0,0"/>
             </StackPanel>
 
