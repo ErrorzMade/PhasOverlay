@@ -19,7 +19,7 @@
 ### 3. Unzip it anywhere.
 ### 4. Run `PhasOverlay.exe`.
 
-⚠ Windows may show a SmartScreen warning the first time you run PhasOverlay. This is due to the .exe not being signed. Click "More Info" > "Run Anyway". This is normal for unsigned applications.
+⚠ Windows may show a SmartScreen warning the first time you run PhasOverlay. This is due to the .exe not being signed. Click "More Info" > "Run Anyway". This is [normal](https://www.ssltrust.co.uk/learning/code-signing/unknown-publisher-warnings) for unsigned applications.
 
 ## Credits
 Some ghost information is sourced from the [Phasmophobia Cheat Sheet](https://tybayn.github.io/phasmo-cheat-sheet/).
