@@ -247,27 +247,7 @@ namespace PhasOverlay
             BtnBindEv7.Content = $"[ {FormatKeyName(_overlay.KeyEv7)} ]  Spirit Box";
         }
 
-        private string FormatKeyName(int vKeyRaw)
-        {
-            string prefix = (vKeyRaw & MainWindow.ShiftFlag) != 0 ? "SHIFT + " : "";
-            int vKey = vKeyRaw & 0xFFFF;
-
-            Key wpfKey = KeyInterop.KeyFromVirtualKey(vKey);
-            string name = wpfKey.ToString();
-
-            string core;
-            if (name.StartsWith("D") && name.Length == 2 && char.IsDigit(name[1])) core = name[1].ToString();
-            else if (name.StartsWith("NumPad")) core = "NUM " + name.Substring(6);
-            else if (name == "Space") core = "SPC";
-            else if (name == "Return") core = "ENTER";
-            else if (name == "Next") core = "PGDN";
-            else if (name == "Prior") core = "PGUP";
-            else if (name == "Capital") core = "CAPS";
-            else if (name == "Oem3") core = "`"; // Explicitly mapped to show the backtick
-            else core = name.ToUpper();
-
-            return prefix + core;
-        }
+        private string FormatKeyName(int vKeyRaw) => MainWindow.FormatKeyName(vKeyRaw);
         private void Bind_Click(object sender, RoutedEventArgs e)
         {
             if (_activeBindButton != null) RefreshBindVisuals();
@@ -609,6 +589,11 @@ namespace PhasOverlay
         {
             try { SaveSettingsData(); } catch { }
             Application.Current.Shutdown();
+        }
+
+        internal void SaveBeforeAppExit()
+        {
+            try { SaveSettingsData(); } catch { }
         }
     }
 }

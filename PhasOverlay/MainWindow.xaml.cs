@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Interop;
 
 namespace PhasOverlay
@@ -245,6 +246,7 @@ namespace PhasOverlay
         {
             InitializeComponent();
             LoadSettings();
+            ((App)Application.Current).InitializeTray(this);
 
             _evidenceWin = new EvidenceWindow(this);
             SyncEvidenceUI();
@@ -388,6 +390,29 @@ namespace PhasOverlay
             // Panels sit along the top, so the window only spans a top band; the rest of
             // the screen stays click-through. Height is generous so nothing clips at max scale.
             this.Height = Math.Min(workArea.Height, Math.Max(720, workArea.Height * 0.6));
+        }
+
+        /// <summary>Display name for a binding, including the SHIFT prefix carried in its high bits.</summary>
+        public static string FormatKeyName(int vKeyRaw)
+        {
+            string prefix = (vKeyRaw & ShiftFlag) != 0 ? "SHIFT + " : "";
+            int vKey = vKeyRaw & 0xFFFF;
+
+            Key wpfKey = KeyInterop.KeyFromVirtualKey(vKey);
+            string name = wpfKey.ToString();
+
+            string core;
+            if (name.StartsWith("D") && name.Length == 2 && char.IsDigit(name[1])) core = name[1].ToString();
+            else if (name.StartsWith("NumPad")) core = "NUM " + name.Substring(6);
+            else if (name == "Space") core = "SPC";
+            else if (name == "Return") core = "ENTER";
+            else if (name == "Next") core = "PGDN";
+            else if (name == "Prior") core = "PGUP";
+            else if (name == "Capital") core = "CAPS";
+            else if (name == "Oem3") core = "`"; // Explicitly mapped to show the backtick
+            else core = name.ToUpper();
+
+            return prefix + core;
         }
 
         /// <summary>Moves the overlay and its notification to the chosen monitor.</summary>
@@ -695,8 +720,7 @@ namespace PhasOverlay
                 ghostsList = false;
             }
 
-            // The welcome/tutorial is curated: only what it explicitly triggers (the hunt-timer
-            // demo) should appear, never the evidence or possible-ghosts panels.
+            // The welcome flow controls its own modules; evidence panels stay hidden until setup ends.
             if (IsTutorialActive)
             {
                 evidence = false;
@@ -1104,6 +1128,7 @@ namespace PhasOverlay
                 WelcomeWindow welcome = new WelcomeWindow(this);
                 welcome.Closed += (s, e) => {
                     IsTutorialActive = false;
+                    ((App)Application.Current).ShowTrayIntroduction();
                     OpenSettings(true);
                 };
                 welcome.Show();
@@ -1120,6 +1145,43 @@ namespace PhasOverlay
                 _settingsWin.Closed += (s, e) => _settingsWin = null;
                 _settingsWin.Show();
             }
+        }
+
+        internal void OpenSettingsFromTray()
+        {
+            if (IsTutorialActive) return;
+
+            if (_settingsWin == null)
+            {
+                OpenSettings(false);
+                return;
+            }
+
+            if (_settingsWin.WindowState == WindowState.Minimized)
+                _settingsWin.WindowState = WindowState.Normal;
+
+            _settingsWin.Show();
+            _settingsWin.Activate();
+        }
+
+        internal void ToggleOverlayFromTray()
+        {
+            if (IsTutorialActive) return;
+
+            if (IsVisible)
+            {
+                Hide();
+                return;
+            }
+
+            Show();
+            UpdateWindowPosition();
+        }
+
+        internal void ExitFromTray()
+        {
+            _settingsWin?.SaveBeforeAppExit();
+            Application.Current.Shutdown();
         }
 
         private void GameLoop_Tick(object? sender, EventArgs e)
@@ -1152,7 +1214,7 @@ namespace PhasOverlay
 
             bool isAppFocused = IsGameOrOverlayFocused();
 
-            if (home && !_homeLast && isAppFocused)
+            if (!IsTutorialActive && home && !_homeLast && isAppFocused)
             {
                 if (_settingsWin == null) OpenSettings(false);
                 else _settingsWin.Close();
@@ -1216,6 +1278,14 @@ namespace PhasOverlay
 
             UpdateOverlayInputState();
             UpdateTimers();
+        }
+
+        public bool IsEvidenceWindowOpen => _evidenceWin != null && _evidenceWin.Visibility == Visibility.Visible;
+
+        public void StartEvidenceTutorial(Action<bool> finished)
+        {
+            if (_evidenceWin == null) _evidenceWin = new EvidenceWindow(this);
+            _evidenceWin.StartTutorial(finished);
         }
 
         public void ToggleEvidenceWindow()
@@ -1356,7 +1426,7 @@ namespace PhasOverlay
 
                 double effectiveSpeedSetting = SpeedMultiplierSetting + (IsBloodMoonActive ? 0.15 : 0.0);
 
-                double rawSpeed = 0.85 / avgSecondsBetweenSteps;
+                double rawSpeed = 1.0 / (avgSecondsBetweenSteps + 0.075);
                 double trueSpeed = rawSpeed / effectiveSpeedSetting;
 
                 SpeedText.Text = trueSpeed.ToString("0.00");

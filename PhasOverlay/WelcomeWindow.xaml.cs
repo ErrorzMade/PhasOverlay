@@ -1,11 +1,13 @@
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
 using System.Runtime.InteropServices;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace PhasOverlay
 {
@@ -15,11 +17,124 @@ namespace PhasOverlay
         private DispatcherTimer _inputTimer;
         private bool _isLoaded = false;
 
-        private bool _k3Last = false;
-        private bool _demoDone = false;
+        private class TeachStep
+        {
+            public string Subtitle = "";
+            public string Title = "";
+            public string Body = "";
+            public string Hint = "";
+            public string HintTail = "";
+            public string Note = "";
+            public int PressesEach = 1;
+            public string CountLabel = "presses";
+            public bool PreserveDemoForNextStep = false;
+            public bool PlaysTutorialFootsteps = false;
+            public bool StartsEvidenceTutorial = false;
+            public string FollowUpHint = "";
+            public string FollowUpHintTail = "";
+            public (Func<MainWindow, int> Key, Action<MainWindow> Act)? FollowUp = null;
+            public (Func<MainWindow, int> Key, Action<MainWindow> Act)[] Inputs =
+                Array.Empty<(Func<MainWindow, int>, Action<MainWindow>)>();
+        }
+
+        private static readonly TeachStep[] Steps =
+        {
+            new TeachStep
+            {
+                Subtitle = "SMUDGE TIMER",
+                Title = "Smudge Timer",
+                Body = "Using incense on a ghost before it hunts prevents the ghost from hunting for a set duration. Start this timer as you smudge to track this duration.",
+                Hint = "Press", HintTail = "to start a Smudge timer",
+                PreserveDemoForNextStep = true,
+                Inputs = new (Func<MainWindow, int>, Action<MainWindow>)[] { (m => m.KeySmudge, m => m.ToggleSmudge()) }
+            },
+            new TeachStep
+            {
+                Subtitle = "CANCELLING",
+                Title = "Cancel A Timer",
+                Body = "Timers vanish on their own when they reach zero, but you are able to prematurely cancel a timer by pressing the same key as the one that activated it.",
+                Note = "Timers only show while they are running, so the overlay stays out of your way until you need it.",
+                Hint = "Press", HintTail = "again to cancel it",
+                Inputs = new (Func<MainWindow, int>, Action<MainWindow>)[] { (m => m.KeySmudge, m => m.ToggleSmudge()) }
+            },
+            new TeachStep
+            {
+                Subtitle = "COOLDOWN",
+                Title = "Track Grace Periods",
+                Body = "After a hunt ends or after the ghost burns a crucifix, there's a window where the ghost is unable to hunt. Use this cooldown timer to keep track of how much time remains until the ghost can hunt again.",
+                Hint = "Press", HintTail = "to track a cooldown",
+                Inputs = new (Func<MainWindow, int>, Action<MainWindow>)[] { (m => m.KeyCooldown, m => m.ToggleCooldown()) }
+            },
+            new TeachStep
+            {
+                Subtitle = "HUNT TIMER",
+                Title = "Track A Hunt",
+                Body = "Start this timer when the ghost begins hunting. It tells you exactly how much time you have left in the hunt. This helps you remain safe or simply know when a hunt is over.",
+                Hint = "Press", HintTail = "to start a Hunt timer",
+                Inputs = new (Func<MainWindow, int>, Action<MainWindow>)[] { (m => m.KeyHunt, m => m.ToggleHunt()) }
+            },
+            new TeachStep
+            {
+                Subtitle = "OBAMBO",
+                Title = "Keep Track of Obambos",
+                Body = "As soon as you open the front door, start this timer. It allows you to keep track of an Obambo's state, helping you identify an Obambo later if the ghost happens to be one.",
+                Hint = "Press", HintTail = "to track it",
+                Inputs = new (Func<MainWindow, int>, Action<MainWindow>)[] { (m => m.KeyObambo, m => m.ToggleObambo()) }
+            },
+            new TeachStep
+            {
+                Subtitle = "GHOST SPEED",
+                Title = "Identify Ghost Speeds",
+                Body = "Use tap to speed to help identify the speed of a ghost during a hunt, allowing you to narrow down the possible ghost list even further.",
+                Hint = "Tap", HintTail = "in rhythm, ten times",
+                PressesEach = 10,
+                CountLabel = "taps",
+                PlaysTutorialFootsteps = true,
+                FollowUpHint = "Reading locked. Press",
+                FollowUpHintTail = "to clear the speed",
+                FollowUp = (m => m.KeySpeedReset, m => m.ResetSpeedTap(false)),
+                Inputs = new (Func<MainWindow, int>, Action<MainWindow>)[] { (m => m.KeySpeedTap, m => m.RecordSpeedTap()) }
+            },
+            new TeachStep
+            {
+                Subtitle = "MODIFIERS",
+                Title = "Environmental Modifiers",
+                Body = "A Blood Moon makes the ghost faster while a cursed hunt increases the duration of a hunt. Toggle these modifiers to make sure the overlay keeps track of them.",
+                Hint = "Press", HintTail = "to toggle both",
+                Inputs = new (Func<MainWindow, int>, Action<MainWindow>)[]
+                {
+                    (m => m.KeyBloodMoon, m => m.ToggleBloodMoon()),
+                    (m => m.KeyCursedHunt, m => m.ToggleCursedHunt())
+                }
+            },
+            new TeachStep
+            {
+                Subtitle = "EVIDENCE",
+                Title = "Learn The Evidence Tracker",
+                Body = "The evidence tracker narrows down possible ghosts using evidence, hunt behaviour and speed. Open it for a short guided walkthrough of the basics.",
+                Hint = "Press", HintTail = "to begin the walkthrough",
+                StartsEvidenceTutorial = true,
+                Inputs = new (Func<MainWindow, int>, Action<MainWindow>)[] { (m => m.KeyEvidence, m => { }) }
+            }
+        };
+
+        private int _stepIndex = -1;              // -1 = welcome screen
+        private int[] _pressCounts = Array.Empty<int>();
+        private bool[] _keyLast = Array.Empty<bool>();
+        private bool _stepSatisfied = false;
+        private bool _awaitingFollowUp = false;
+        private bool _followUpKeyLast = false;
+        private bool _evidenceTutorialRunning = false;
+        private bool _capturingSettingsKey = false;
+        private CancellationTokenSource? _tutorialFootstepCancel;
+        private bool _tutorialFootstepLoaded = false;
+        private const string TutorialFootstepAlias = "welcome_footstep";
 
         [DllImport("user32.dll")]
         public static extern short GetAsyncKeyState(int vKey);
+
+        [DllImport("winmm.dll", CharSet = CharSet.Auto)]
+        private static extern long mciSendString(string command, string? returnValue, int returnLength, IntPtr winHandle);
 
         public WelcomeWindow(MainWindow main)
         {
@@ -33,6 +148,7 @@ namespace PhasOverlay
 
             _isLoaded = true;
             UpdateSliderLabels();
+            RefreshSetupSettingsKey();
             RefreshWeeklyComboItem();
 
             Difficulty_SelectionChanged(null, null);
@@ -40,12 +156,58 @@ namespace PhasOverlay
             _ = RefreshWeeklyDataAsync();
 
             this.Loaded += (s, e) => DisplayService.CenterOn(this, _main.DisplayIndex);
+            this.Closed += (s, e) =>
+            {
+                _inputTimer.Stop();
+                CloseTutorialFootsteps();
+            };
         }
 
         private void UpdateSliderLabels()
         {
             if (ScaleValueLabel != null) ScaleValueLabel.Text = $"{Math.Round(SldScale.Value * 100)}%";
             if (OpacityValueLabel != null) OpacityValueLabel.Text = $"{Math.Round(SldOpacity.Value * 100)}%";
+        }
+
+        private void RefreshSetupSettingsKey()
+        {
+            BtnSetupSettingsKey.Content = $"[ {MainWindow.FormatKeyName(_main.KeySettings)} ]  CHANGE KEY";
+            BtnSetupSettingsKey.ClearValue(Control.ForegroundProperty);
+        }
+
+        private void SetupSettingsKey_Click(object sender, RoutedEventArgs e)
+        {
+            _capturingSettingsKey = true;
+            BtnSetupSettingsKey.Content = "[ PRESS ANY KEY ]";
+            BtnSetupSettingsKey.Foreground = GetBrush("#FFB455FF");
+            BtnSetupSettingsKey.Focus();
+        }
+
+        private void SetupShortcut_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (!_capturingSettingsKey) return;
+
+            e.Handled = true;
+            if (e.Key == Key.Escape)
+            {
+                _capturingSettingsKey = false;
+                RefreshSetupSettingsKey();
+                return;
+            }
+
+            Key key = e.Key == Key.System ? e.SystemKey : e.Key;
+            if (key == Key.LeftShift || key == Key.RightShift || key == Key.LeftCtrl || key == Key.RightCtrl
+                || key == Key.LeftAlt || key == Key.RightAlt || key == Key.System)
+            {
+                return;
+            }
+
+            int newKey = KeyInterop.VirtualKeyFromKey(key);
+            if ((Keyboard.Modifiers & ModifierKeys.Shift) != 0) newKey |= MainWindow.ShiftFlag;
+
+            _main.SyncKeybind("Settings", newKey);
+            _capturingSettingsKey = false;
+            RefreshSetupSettingsKey();
         }
 
         /// <summary>Shows the Weekly combo item with its label only when a weekly is cached.</summary>
@@ -84,54 +246,347 @@ namespace PhasOverlay
         // ------------------------------------------------------------------
         private void NextStep_Click(object sender, RoutedEventArgs e)
         {
-            // Step 1 -> Step 2 (The Basics)
             Step1.Visibility = Visibility.Collapsed;
-            Step2.Visibility = Visibility.Visible;
-            StepSubtitle.Text = "THE BASICS";
-            TxtProgress.Text = "STEP 2 OF 3";
+            StepTeach.Visibility = Visibility.Visible;
             TxtProgress.Visibility = Visibility.Collapsed;
-            BtnContinue.Visibility = Visibility.Visible;
+
+            ShowStep(0);
         }
 
-        private void Continue_Click(object sender, RoutedEventArgs e)
+        private void MoveToNextStep()
         {
-            // Tidy up the demo hunt timer before leaving the teaching step.
-            if (_main.ModHunt.Visibility == Visibility.Visible)
+            if (_stepIndex + 1 < Steps.Length)
             {
-                double originalVolume = _main.MasterVolume;
-                _main.MasterVolume = 0;
-                _main.ToggleHunt();
-                _main.MasterVolume = originalVolume;
+                ShowStep(_stepIndex + 1);
+                return;
             }
 
-            // Step 2 -> Step 3 (Your Setup)
-            Step2.Visibility = Visibility.Collapsed;
+            CleanUpDemo();
+
+            StepTeach.Visibility = Visibility.Collapsed;
             Step3.Visibility = Visibility.Visible;
             StepSubtitle.Text = "YOUR SETUP";
-            TxtProgress.Visibility = Visibility.Collapsed;
-            BtnContinue.Visibility = Visibility.Collapsed;
             BtnFinish.Visibility = Visibility.Visible;
+        }
+
+        private void ShowStep(int index)
+        {
+            StopTutorialFootsteps();
+
+            _stepIndex = index;
+            _stepSatisfied = false;
+            _awaitingFollowUp = false;
+            _followUpKeyLast = false;
+
+            TeachStep s = Steps[index];
+            _pressCounts = new int[s.Inputs.Length];
+            _keyLast = new bool[s.Inputs.Length];
+            bool shiftDown = (GetAsyncKeyState(0x10) & 0x8000) != 0;
+            for (int i = 0; i < s.Inputs.Length; i++)
+            {
+                _keyLast[i] = MainWindow.KeyHeld(s.Inputs[i].Key(_main), shiftDown);
+            }
+
+            StepSubtitle.Text = s.Subtitle;
+            TeachTitle.Text = s.Title;
+            TeachBody.Text = s.Body;
+
+            TeachNote.Text = s.Note;
+            TeachNoteBox.Visibility = string.IsNullOrEmpty(s.Note) ? Visibility.Collapsed : Visibility.Visible;
+
+            TeachHint.Text = s.Hint;
+            TeachHintTail.Text = s.HintTail;
+            TeachHint.Visibility = Visibility.Visible;
+            TeachHintTail.Visibility = Visibility.Visible;
+
+            TeachKeyText.Text = MainWindow.FormatKeyName(s.Inputs[0].Key(_main));
+            TeachKeyCap.Visibility = Visibility.Visible;
+
+            bool twoKeys = s.Inputs.Length > 1;
+            if (twoKeys) TeachKeyText2.Text = MainWindow.FormatKeyName(s.Inputs[1].Key(_main));
+            TeachKeyCap2.Visibility = twoKeys ? Visibility.Visible : Visibility.Collapsed;
+            ResetKeyCap(TeachKeyCap, TeachKeyText);
+            ResetKeyCap(TeachKeyCap2, TeachKeyText2);
+
+            TeachBox.Background = GetBrush("#14B455FF");
+            TeachBox.BorderBrush = GetBrush("#40B455FF");
+
+            RefreshProgressHint();
+
+            if (s.PlaysTutorialFootsteps) StartTutorialFootsteps();
+        }
+
+        private void RefreshProgressHint()
+        {
+            TeachStep s = Steps[_stepIndex];
+            bool counted = s.PressesEach > 1;
+
+            if (!counted || _stepSatisfied)
+            {
+                TeachProgressHint.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            TeachProgressHint.Text = $"{_pressCounts[0]} / {s.PressesEach} {s.CountLabel}";
+            TeachProgressHint.Visibility = Visibility.Visible;
+        }
+
+        private void BeginFollowUp(TeachStep s, bool shiftDown)
+        {
+            if (!s.FollowUp.HasValue) return;
+
+            _awaitingFollowUp = true;
+            StopTutorialFootsteps();
+
+            var followUp = s.FollowUp.Value;
+            _followUpKeyLast = MainWindow.KeyHeld(followUp.Key(_main), shiftDown);
+
+            TeachBox.Background = GetBrush("#20B455FF");
+            TeachBox.BorderBrush = GetBrush("#FFB455FF");
+            ResetKeyCap(TeachKeyCap, TeachKeyText);
+            ResetKeyCap(TeachKeyCap2, TeachKeyText2);
+            TeachHint.Text = s.FollowUpHint;
+            TeachHintTail.Text = s.FollowUpHintTail;
+            TeachHintTail.Visibility = Visibility.Visible;
+            TeachKeyText.Text = MainWindow.FormatKeyName(followUp.Key(_main));
+            TeachKeyCap.Visibility = Visibility.Visible;
+            TeachKeyCap2.Visibility = Visibility.Collapsed;
+            TeachProgressHint.Visibility = Visibility.Collapsed;
+        }
+
+        private async void MarkStepSatisfied()
+        {
+            _stepSatisfied = true;
+            int completedStep = _stepIndex;
+
+            TeachStep s = Steps[_stepIndex];
+            TeachBox.Background = GetBrush("#20B455FF");
+            TeachBox.BorderBrush = GetBrush("#FFB455FF");
+            if (_awaitingFollowUp)
+            {
+                MarkKeyCapPressed(TeachKeyCap, TeachKeyText);
+            }
+            else
+            {
+                MarkKeyCapPressed(TeachKeyCap, TeachKeyText);
+                if (s.Inputs.Length > 1) MarkKeyCapPressed(TeachKeyCap2, TeachKeyText2);
+            }
+
+            RefreshProgressHint();
+
+            await Task.Delay(TimeSpan.FromSeconds(1.5));
+            if (!IsLoaded || _stepIndex != completedStep) return;
+
+            if (!s.PreserveDemoForNextStep) CleanUpDemo();
+            MoveToNextStep();
+        }
+
+        private static void ResetKeyCap(Border keyCap, TextBlock keyText)
+        {
+            keyCap.ClearValue(Border.BackgroundProperty);
+            keyCap.ClearValue(Border.BorderBrushProperty);
+            keyText.ClearValue(TextBlock.ForegroundProperty);
+        }
+
+        private static void MarkKeyCapPressed(Border keyCap, TextBlock keyText)
+        {
+            keyCap.Background = GetBrush("#FFB455FF");
+            keyCap.BorderBrush = GetBrush("#FFD6A0FF");
+            keyText.Foreground = GetBrush("#FF151515");
+        }
+
+        private static Brush GetBrush(string hex)
+        {
+            Brush b = (Brush)(new BrushConverter().ConvertFromString(hex)
+                ?? throw new InvalidOperationException($"Invalid brush colour: {hex}"));
+            b.Freeze();
+            return b;
         }
 
         private void InputTimer_Tick(object sender, EventArgs e)
         {
+            if (StepTeach.Visibility != Visibility.Visible || _stepIndex < 0) return;
+
             bool shiftDown = (GetAsyncKeyState(0x10) & 0x8000) != 0;
-            bool k3 = MainWindow.KeyHeld(_main.KeyHunt, shiftDown);
+            TeachStep s = Steps[_stepIndex];
 
-            // The single hands-on moment: pressing the Hunt key on the Basics step.
-            if (Step2.Visibility == Visibility.Visible && k3 && !_k3Last && !_demoDone)
+            if (_stepSatisfied) return;
+
+            if (_awaitingFollowUp && s.FollowUp.HasValue)
             {
-                _demoDone = true;
-                _main.ToggleHunt();
+                var followUp = s.FollowUp.Value;
+                bool down = MainWindow.KeyHeld(followUp.Key(_main), shiftDown);
+                if (down && !_followUpKeyLast)
+                {
+                    followUp.Act(_main);
+                    _followUpKeyLast = down;
+                    MarkStepSatisfied();
+                    return;
+                }
 
-                TryItBox.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#20B455FF"));
-                TryItBox.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFB455FF"));
-                TryItText.Text = "Nice! It's counting down at the top of your screen.";
-                TryItKey.Visibility = Visibility.Collapsed;
-                TryItText2.Visibility = Visibility.Collapsed;
+                _followUpKeyLast = down;
+                return;
             }
 
-            _k3Last = k3;
+            for (int i = 0; i < s.Inputs.Length; i++)
+            {
+                // KeyHeld, not raw GetAsyncKeyState: a binding can carry ShiftFlag in its high bits.
+                bool down = MainWindow.KeyHeld(s.Inputs[i].Key(_main), shiftDown);
+
+                if (down && !_keyLast[i] && _pressCounts[i] < s.PressesEach)
+                {
+                    _pressCounts[i]++;
+                    if (_pressCounts[i] == s.PressesEach)
+                    {
+                        MarkKeyCapPressed(
+                            i == 0 ? TeachKeyCap : TeachKeyCap2,
+                            i == 0 ? TeachKeyText : TeachKeyText2);
+                    }
+
+                    if (s.StartsEvidenceTutorial)
+                    {
+                        _keyLast[i] = down;
+                        StartEvidenceTutorial();
+                        return;
+                    }
+
+                    s.Inputs[i].Act(_main);
+                    RefreshProgressHint();
+                }
+                _keyLast[i] = down;
+            }
+
+            foreach (int c in _pressCounts)
+            {
+                if (c < s.PressesEach) return;
+            }
+
+            if (s.FollowUp.HasValue)
+            {
+                BeginFollowUp(s, shiftDown);
+                return;
+            }
+
+            MarkStepSatisfied();
+        }
+
+        private void StartEvidenceTutorial()
+        {
+            if (_evidenceTutorialRunning) return;
+
+            _evidenceTutorialRunning = true;
+            _inputTimer.Stop();
+            Opacity = 0;
+            MoveToNextStep();
+            UpdateLayout();
+            Dispatcher.Invoke(DispatcherPriority.Render, new Action(() => { }));
+            Hide();
+
+            _main.StartEvidenceTutorial(completed =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    _evidenceTutorialRunning = false;
+
+                    if (!completed)
+                    {
+                        Step3.Visibility = Visibility.Collapsed;
+                        BtnFinish.Visibility = Visibility.Collapsed;
+                        StepTeach.Visibility = Visibility.Visible;
+                        ShowStep(_stepIndex);
+                    }
+
+                    Show();
+                    UpdateLayout();
+                    Dispatcher.Invoke(DispatcherPriority.Render, new Action(() => { }));
+                    Opacity = 1;
+                    Activate();
+                    _inputTimer.Start();
+                });
+            });
+        }
+
+        private bool EnsureTutorialFootstep()
+        {
+            if (_tutorialFootstepLoaded) return true;
+
+            string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Audio", "footstep.mp3");
+            if (!File.Exists(filePath))
+                filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "footstep.mp3");
+            if (!File.Exists(filePath)) return false;
+
+            long result = mciSendString($"open \"{filePath}\" type mpegvideo alias {TutorialFootstepAlias}", null, 0, IntPtr.Zero);
+            _tutorialFootstepLoaded = result == 0;
+            return _tutorialFootstepLoaded;
+        }
+
+        private void StartTutorialFootsteps()
+        {
+            StopTutorialFootsteps();
+            if (!EnsureTutorialFootstep()) return;
+
+            _tutorialFootstepCancel = new CancellationTokenSource();
+            CancellationToken token = _tutorialFootstepCancel.Token;
+            TimeSpan interval = TimeSpan.FromMilliseconds((1000.0 / 1.7) - 75.0);
+
+            FireTutorialFootstep();
+
+            Task.Run(async () =>
+            {
+                try
+                {
+                    using var timer = new PeriodicTimer(interval);
+                    while (await timer.WaitForNextTickAsync(token))
+                    {
+                        _ = Dispatcher.InvokeAsync(() =>
+                        {
+                            if (!token.IsCancellationRequested) FireTutorialFootstep();
+                        });
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                }
+            }, token);
+        }
+
+        private static void FireTutorialFootstep()
+        {
+            mciSendString($"play {TutorialFootstepAlias} from 0", null, 0, IntPtr.Zero);
+        }
+
+        private void StopTutorialFootsteps()
+        {
+            if (_tutorialFootstepCancel == null) return;
+
+            _tutorialFootstepCancel.Cancel();
+            _tutorialFootstepCancel.Dispose();
+            _tutorialFootstepCancel = null;
+        }
+
+        private void CloseTutorialFootsteps()
+        {
+            StopTutorialFootsteps();
+            if (!_tutorialFootstepLoaded) return;
+
+            mciSendString($"close {TutorialFootstepAlias}", null, 0, IntPtr.Zero);
+            _tutorialFootstepLoaded = false;
+        }
+
+        /// <summary>Clears anything the walkthrough started so the real session begins clean.</summary>
+        private void CleanUpDemo()
+        {
+            StopTutorialFootsteps();
+
+            double originalVolume = _main.MasterVolume;
+            _main.MasterVolume = 0;
+            try
+            {
+                if (_main.IsEvidenceWindowOpen) _main.ToggleEvidenceWindow();
+                _main.ClearAll();
+            }
+            catch { }
+            _main.MasterVolume = originalVolume;
         }
 
         // ------------------------------------------------------------------
@@ -297,7 +752,7 @@ namespace PhasOverlay
                 int finalDurIdx = GetResolvedDurationIndex();
                 int diffIdx = CmbDifficulty.SelectedIndex >= 0 ? CmbDifficulty.SelectedIndex : 1;
                 int customDurIdx = CmbCustomDuration.SelectedIndex >= 0 ? CmbCustomDuration.SelectedIndex : 1;
-                int posIdx = CmbPosition.SelectedIndex >= 0 ? CmbPosition.SelectedIndex : 0;
+                int posIdx = CmbPosition.SelectedIndex >= 0 ? CmbPosition.SelectedIndex : 1;
 
                 string appDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PhasOverlay");
                 Directory.CreateDirectory(appDataFolder);
@@ -351,6 +806,7 @@ namespace PhasOverlay
 
         private void Skip_Click(object sender, RoutedEventArgs e)
         {
+            CleanUpDemo();
             SaveInitialSettings();
             _inputTimer.Stop();
             this.Close();
@@ -358,15 +814,7 @@ namespace PhasOverlay
 
         private void Finish_Click(object sender, RoutedEventArgs e)
         {
-            // Make sure the demo hunt isn't left running.
-            if (_main.ModHunt.Visibility == Visibility.Visible)
-            {
-                double originalVolume = _main.MasterVolume;
-                _main.MasterVolume = 0;
-                _main.ToggleHunt();
-                _main.MasterVolume = originalVolume;
-            }
-
+            CleanUpDemo();
             SaveInitialSettings();
             _inputTimer.Stop();
             this.Close();

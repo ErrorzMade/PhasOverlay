@@ -231,6 +231,42 @@ namespace PhasOverlay
         private int _currentAliasIndex = 0;
         private bool _aliasesLoaded = false;
 
+        private enum EvidenceTutorialStep
+        {
+            ConfirmEvidence,
+            RuleOutEvidence,
+            ExpandGhost,
+            CloseGhost,
+            OpenSettings,
+            ChangeMap,
+            ResetTracker
+        }
+
+        private bool _tutorialMode = false;
+        private EvidenceTutorialStep _tutorialStep;
+        private Action<bool>? _tutorialFinished;
+        private FrameworkElement? _tutorialTarget;
+        private bool _tutorialTargetEmphasised;
+        private object _tutorialTargetEnabledValue = DependencyProperty.UnsetValue;
+        private object _tutorialTargetOpacityValue = DependencyProperty.UnsetValue;
+        private object _tutorialTargetEffectValue = DependencyProperty.UnsetValue;
+        private object _tutorialTargetStyleValue = DependencyProperty.UnsetValue;
+        private object _tutorialCloseEnabledValue = DependencyProperty.UnsetValue;
+        private object _tutorialCloseOpacityValue = DependencyProperty.UnsetValue;
+        private object _tutorialCloseCursorValue = DependencyProperty.UnsetValue;
+        private int _tutorialRun = 0;
+        private int _tutorialOriginalMapSize;
+        private int _tutorialMapBeforeChange;
+        private bool _tutorialMatchSetupWasOpen;
+        private bool?[] _tutorialEvidenceSnapshot = Array.Empty<bool?>();
+        private bool[] _tutorialHuntSnapshot = Array.Empty<bool>();
+        private bool[] _tutorialSpeedSnapshot = Array.Empty<bool>();
+        private Dictionary<string, int> _tutorialGhostSnapshot = new Dictionary<string, int>();
+        private readonly Dictionary<FrameworkElement, (object IsEnabled, object Opacity)> _tutorialControlSnapshot =
+            new Dictionary<FrameworkElement, (object, object)>();
+        private readonly Dictionary<ContentPresenter, (object Opacity, object IsHitTestVisible)> _tutorialGhostVisualSnapshot =
+            new Dictionary<ContentPresenter, (object, object)>();
+
         public EvidenceWindow(MainWindow main)
         {
             InitializeComponent();
@@ -265,6 +301,346 @@ namespace PhasOverlay
             _ = RefreshWeeklyDataAsync();
 
             this.Loaded += (s, e) => DisplayService.CenterOn(this, _main.DisplayIndex);
+        }
+
+        public void StartTutorial(Action<bool> finished)
+        {
+            if (_tutorialMode) return;
+
+            _tutorialMode = true;
+            _tutorialFinished = finished;
+            _tutorialRun++;
+            _tutorialOriginalMapSize = _main.MapSizeIndex;
+            _tutorialMatchSetupWasOpen = BtnMatchSetup.IsChecked == true;
+            _tutorialEvidenceSnapshot = Enumerable.Range(1, 7).Select(GetEvidenceState).ToArray();
+            _tutorialHuntSnapshot = new[]
+            {
+                TglHuntVeryEarly.IsChecked == true,
+                TglHuntEarly.IsChecked == true,
+                TglHuntNormal.IsChecked == true,
+                TglHuntLate.IsChecked == true
+            };
+            _tutorialSpeedSnapshot = new[]
+            {
+                TglSpeedSlow.IsChecked == true,
+                TglSpeedNormal.IsChecked == true,
+                TglSpeedFast.IsChecked == true
+            };
+            _tutorialGhostSnapshot = _masterGhostList.ToDictionary(g => g.Name, g => g.CardState);
+            CaptureTutorialControlState();
+            _tutorialCloseEnabledValue = BtnCloseWindow.ReadLocalValue(UIElement.IsEnabledProperty);
+            _tutorialCloseOpacityValue = BtnCloseWindow.ReadLocalValue(UIElement.OpacityProperty);
+            _tutorialCloseCursorValue = BtnCloseWindow.ReadLocalValue(FrameworkElement.CursorProperty);
+
+            ResetTracker();
+            BtnMatchSetup.IsChecked = false;
+            BtnCloseWindow.IsEnabled = false;
+            BtnCloseWindow.Opacity = 0.28;
+            BtnCloseWindow.Cursor = Cursors.Arrow;
+            GhostModalOverlay.Visibility = Visibility.Collapsed;
+            TutorialCoach.Visibility = Visibility.Visible;
+            _tutorialStep = EvidenceTutorialStep.ConfirmEvidence;
+            ShowTutorialStep();
+
+            if (!IsVisible) Show();
+            Activate();
+        }
+
+        private void ShowTutorialStep()
+        {
+            ClearTutorialTarget();
+            RestoreGhostTutorialVisuals();
+            DimTutorialControls();
+
+            int number = (int)_tutorialStep + 1;
+            TutorialStepText.Text = $"{number} OF 7";
+            TutorialCoach.VerticalAlignment = VerticalAlignment.Top;
+            TutorialCoach.Margin = new Thickness(0, 18, 0, 0);
+
+            switch (_tutorialStep)
+            {
+                case EvidenceTutorialStep.ConfirmEvidence:
+                    TutorialTitle.Text = "Confirm Evidence";
+                    TutorialBody.Text = "Click EMF Level 5 once to confirm it. Watch the possible ghost list narrow immediately.";
+                    AllowTutorialTarget(ChkEmf);
+                    break;
+
+                case EvidenceTutorialStep.RuleOutEvidence:
+                    TutorialTitle.Text = "Rule Out Evidence";
+                    TutorialBody.Text = ChkDots.IsChecked == true
+                        ? "D.O.T.S is selected. Click it once more to rule it out."
+                        : "Click D.O.T.S Projector twice. The first click confirms it and the second rules it out.";
+                    AllowTutorialTarget(ChkDots);
+                    break;
+
+                case EvidenceTutorialStep.ExpandGhost:
+                    TutorialTitle.Text = "Inspect A Ghost";
+                    TutorialBody.Text = "Use the plus button on Dayan to open its full information.";
+                    GhostScrollViewer.IsEnabled = true;
+                    GhostScrollViewer.Opacity = 1.0;
+                    DimGhostsExcept("Dayan");
+
+                    Button? dayanExpand = FindGhostExpandButton("Dayan");
+                    if (dayanExpand != null)
+                    {
+                        AllowTutorialTarget(dayanExpand, true);
+                    }
+                    else
+                    {
+                        _ = Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            if (!_tutorialMode || _tutorialStep != EvidenceTutorialStep.ExpandGhost) return;
+                            Button? delayedTarget = FindGhostExpandButton("Dayan");
+                            if (delayedTarget != null) AllowTutorialTarget(delayedTarget, true);
+                        }), System.Windows.Threading.DispatcherPriority.Loaded);
+                    }
+                    break;
+
+                case EvidenceTutorialStep.CloseGhost:
+                    TutorialTitle.Text = "Read The Details";
+                    TutorialBody.Text = "This view shows the ghost's evidence, speed, hunt sanity and identifying behaviours. Close it when you are ready.";
+                    AllowTutorialTarget(BtnCloseGhostModal);
+                    break;
+
+                case EvidenceTutorialStep.OpenSettings:
+                    TutorialTitle.Text = "Open Game Settings";
+                    TutorialBody.Text = "Open Game Settings to keep the tracker matched to the current contract.";
+                    AllowTutorialTarget(BtnMatchSetup);
+                    break;
+
+                case EvidenceTutorialStep.ChangeMap:
+                    TutorialTitle.Text = "Change The Map Size";
+                    TutorialBody.Text = "Change the map size. Match settings keep hunt timing and ghost information accurate.";
+                    _tutorialMapBeforeChange = CtxMap.SelectedIndex;
+                    TutorialCoach.VerticalAlignment = VerticalAlignment.Bottom;
+                    TutorialCoach.Margin = new Thickness(0, 0, 0, 18);
+                    AllowTutorialTarget(CtxMap);
+                    break;
+
+                case EvidenceTutorialStep.ResetTracker:
+                    TutorialTitle.Text = "Reset The Tracker";
+                    TutorialBody.Text = "Reset the tracker when a new investigation begins. This clears the tutorial choices too.";
+                    AllowTutorialTarget(BtnResetTracker);
+                    break;
+            }
+        }
+
+        private FrameworkElement[] GetTutorialControls()
+        {
+            return new FrameworkElement[]
+            {
+                ChkEmf, ChkDots, ChkUv, ChkFreezing, ChkOrb, ChkWriting, ChkBox,
+                TglHuntVeryEarly, TglHuntEarly, TglHuntNormal, TglHuntLate,
+                TglSpeedSlow, TglSpeedNormal, TglSpeedFast,
+                TglEv0, TglEv1, TglEv2, TglEv3,
+                BtnResetTracker, BtnMatchSetup, GhostScrollViewer,
+                CtxDifficulty, CtxMap, CtxHunt, CtxSpeed
+            };
+        }
+
+        private void CaptureTutorialControlState()
+        {
+            _tutorialControlSnapshot.Clear();
+            foreach (FrameworkElement control in GetTutorialControls())
+            {
+                _tutorialControlSnapshot[control] =
+                    (control.ReadLocalValue(UIElement.IsEnabledProperty), control.ReadLocalValue(UIElement.OpacityProperty));
+            }
+        }
+
+        private void DimTutorialControls()
+        {
+            foreach (FrameworkElement control in GetTutorialControls())
+            {
+                control.IsEnabled = false;
+                control.Opacity = 0.42;
+            }
+        }
+
+        private void RestoreTutorialControlState()
+        {
+            foreach (KeyValuePair<FrameworkElement, (object IsEnabled, object Opacity)> entry in _tutorialControlSnapshot)
+            {
+                RestoreLocalValue(entry.Key, UIElement.IsEnabledProperty, entry.Value.IsEnabled);
+                RestoreLocalValue(entry.Key, UIElement.OpacityProperty, entry.Value.Opacity);
+            }
+            _tutorialControlSnapshot.Clear();
+        }
+
+        private void AllowTutorialTarget(FrameworkElement target, bool emphasise = false)
+        {
+            _tutorialTargetEnabledValue = target.ReadLocalValue(UIElement.IsEnabledProperty);
+            _tutorialTargetOpacityValue = target.ReadLocalValue(UIElement.OpacityProperty);
+            _tutorialTargetEffectValue = target.ReadLocalValue(UIElement.EffectProperty);
+            target.IsEnabled = true;
+            target.Opacity = 1.0;
+            if (emphasise && target is Button button)
+            {
+                _tutorialTargetStyleValue = button.ReadLocalValue(FrameworkElement.StyleProperty);
+                button.Style = (Style)FindResource("TutorialExpandButtonStyle");
+            }
+            target.Effect = new System.Windows.Media.Effects.DropShadowEffect
+            {
+                Color = (Color)ColorConverter.ConvertFromString(emphasise ? "#FFC66BFF" : "#FFB455FF"),
+                BlurRadius = emphasise ? 36 : 18,
+                ShadowDepth = 0,
+                Opacity = emphasise ? 1.0 : 0.9
+            };
+            _tutorialTarget = target;
+            _tutorialTargetEmphasised = emphasise;
+        }
+
+        private Button? FindGhostExpandButton(string ghostName)
+        {
+            GhostData? ghost = _visibleGhosts.FirstOrDefault(g => g.Name == ghostName);
+            if (ghost == null) return null;
+
+            GhostItemsControl.UpdateLayout();
+            if (GhostItemsControl.ItemContainerGenerator.ContainerFromItem(ghost) is not ContentPresenter presenter)
+            {
+                return null;
+            }
+
+            DataTemplate? template = presenter.ContentTemplate ?? GhostItemsControl.ItemTemplate;
+            return template?.FindName("ExpandGhostButton", presenter) as Button;
+        }
+
+        private void DimGhostsExcept(string ghostName)
+        {
+            GhostItemsControl.UpdateLayout();
+            _tutorialGhostVisualSnapshot.Clear();
+            foreach (object item in GhostItemsControl.Items)
+            {
+                if (item is not GhostData ghost
+                    || GhostItemsControl.ItemContainerGenerator.ContainerFromItem(item) is not ContentPresenter presenter)
+                {
+                    continue;
+                }
+
+                _tutorialGhostVisualSnapshot[presenter] =
+                    (presenter.ReadLocalValue(UIElement.OpacityProperty),
+                     presenter.ReadLocalValue(UIElement.IsHitTestVisibleProperty));
+                bool isTarget = ghost.Name == ghostName;
+                presenter.Opacity = isTarget ? 1.0 : 0.25;
+                presenter.IsHitTestVisible = isTarget;
+            }
+        }
+
+        private void RestoreGhostTutorialVisuals()
+        {
+            foreach (KeyValuePair<ContentPresenter, (object Opacity, object IsHitTestVisible)> entry
+                     in _tutorialGhostVisualSnapshot)
+            {
+                RestoreLocalValue(entry.Key, UIElement.OpacityProperty, entry.Value.Opacity);
+                RestoreLocalValue(entry.Key, UIElement.IsHitTestVisibleProperty, entry.Value.IsHitTestVisible);
+            }
+            _tutorialGhostVisualSnapshot.Clear();
+        }
+
+        private void ClearTutorialTarget()
+        {
+            if (_tutorialTarget != null)
+            {
+                RestoreLocalValue(_tutorialTarget, UIElement.IsEnabledProperty, _tutorialTargetEnabledValue);
+                RestoreLocalValue(_tutorialTarget, UIElement.OpacityProperty, _tutorialTargetOpacityValue);
+                RestoreLocalValue(_tutorialTarget, UIElement.EffectProperty, _tutorialTargetEffectValue);
+                if (_tutorialTargetEmphasised && _tutorialTarget is Button button)
+                {
+                    RestoreLocalValue(button, FrameworkElement.StyleProperty, _tutorialTargetStyleValue);
+                }
+            }
+            _tutorialTarget = null;
+            _tutorialTargetEmphasised = false;
+            _tutorialTargetEnabledValue = DependencyProperty.UnsetValue;
+            _tutorialTargetOpacityValue = DependencyProperty.UnsetValue;
+            _tutorialTargetEffectValue = DependencyProperty.UnsetValue;
+            _tutorialTargetStyleValue = DependencyProperty.UnsetValue;
+        }
+
+        private static void RestoreLocalValue(DependencyObject target, DependencyProperty property, object value)
+        {
+            if (value == DependencyProperty.UnsetValue) target.ClearValue(property);
+            else target.SetValue(property, value);
+        }
+
+        private void AdvanceTutorial()
+        {
+            if (!_tutorialMode || _tutorialStep == EvidenceTutorialStep.ResetTracker) return;
+            _tutorialStep++;
+            ShowTutorialStep();
+        }
+
+        private async void CompleteTutorial()
+        {
+            if (!_tutorialMode) return;
+
+            int run = _tutorialRun;
+            ClearTutorialTarget();
+            DimTutorialControls();
+            TutorialStepText.Text = "DONE";
+            TutorialTitle.Text = "Evidence Basics Complete";
+            TutorialBody.Text = "You can now narrow the ghost list, inspect candidates and keep each investigation configured correctly.";
+
+            await Task.Delay(TimeSpan.FromSeconds(1.5));
+            if (_tutorialMode && _tutorialRun == run) EndTutorial(true);
+        }
+
+        private void EndTutorial(bool completed)
+        {
+            if (!_tutorialMode) return;
+
+            Action<bool>? finished = _tutorialFinished;
+            _tutorialMode = false;
+            _tutorialFinished = null;
+            _tutorialRun++;
+
+            ClearTutorialTarget();
+            RestoreGhostTutorialVisuals();
+            RestoreLocalValue(BtnCloseWindow, UIElement.IsEnabledProperty, _tutorialCloseEnabledValue);
+            RestoreLocalValue(BtnCloseWindow, UIElement.OpacityProperty, _tutorialCloseOpacityValue);
+            RestoreLocalValue(BtnCloseWindow, FrameworkElement.CursorProperty, _tutorialCloseCursorValue);
+            _tutorialCloseEnabledValue = DependencyProperty.UnsetValue;
+            _tutorialCloseOpacityValue = DependencyProperty.UnsetValue;
+            _tutorialCloseCursorValue = DependencyProperty.UnsetValue;
+            TutorialCoach.Visibility = Visibility.Collapsed;
+            GhostModalOverlay.Visibility = Visibility.Collapsed;
+            BtnMatchSetup.IsChecked = _tutorialMatchSetupWasOpen;
+            RestoreTutorialControlState();
+
+            if (_tutorialEvidenceSnapshot.Length == 7)
+            {
+                ChkEmf.IsChecked = _tutorialEvidenceSnapshot[0];
+                ChkDots.IsChecked = _tutorialEvidenceSnapshot[1];
+                ChkUv.IsChecked = _tutorialEvidenceSnapshot[2];
+                ChkFreezing.IsChecked = _tutorialEvidenceSnapshot[3];
+                ChkOrb.IsChecked = _tutorialEvidenceSnapshot[4];
+                ChkWriting.IsChecked = _tutorialEvidenceSnapshot[5];
+                ChkBox.IsChecked = _tutorialEvidenceSnapshot[6];
+            }
+            if (_tutorialHuntSnapshot.Length == 4)
+            {
+                TglHuntVeryEarly.IsChecked = _tutorialHuntSnapshot[0];
+                TglHuntEarly.IsChecked = _tutorialHuntSnapshot[1];
+                TglHuntNormal.IsChecked = _tutorialHuntSnapshot[2];
+                TglHuntLate.IsChecked = _tutorialHuntSnapshot[3];
+            }
+            if (_tutorialSpeedSnapshot.Length == 3)
+            {
+                TglSpeedSlow.IsChecked = _tutorialSpeedSnapshot[0];
+                TglSpeedNormal.IsChecked = _tutorialSpeedSnapshot[1];
+                TglSpeedFast.IsChecked = _tutorialSpeedSnapshot[2];
+            }
+            foreach (GhostData ghost in _masterGhostList)
+            {
+                if (_tutorialGhostSnapshot.TryGetValue(ghost.Name, out int state)) ghost.CardState = state;
+            }
+
+            _main.MapSizeIndex = _tutorialOriginalMapSize;
+            _main.RecomputeHuntDuration();
+            SyncMatchControls();
+            ApplyFilteringEngine();
+            Hide();
+            finished?.Invoke(completed);
         }
 
         /// <summary>Shows the Weekly combo item with its label only when a weekly is cached.</summary>
@@ -543,12 +919,29 @@ namespace PhasOverlay
             {
                 e.Handled = true;
                 if (!cb.IsEnabled) return;
+                if (_tutorialMode
+                    && !(_tutorialStep == EvidenceTutorialStep.ConfirmEvidence && cb == ChkEmf)
+                    && !(_tutorialStep == EvidenceTutorialStep.RuleOutEvidence && cb == ChkDots))
+                {
+                    return;
+                }
 
                 if (cb.IsChecked == null) cb.IsChecked = true;
                 else if (cb.IsChecked == true) cb.IsChecked = false;
                 else cb.IsChecked = null;
 
                 ApplyFilteringEngine();
+
+                if (_tutorialMode && _tutorialStep == EvidenceTutorialStep.ConfirmEvidence
+                    && cb == ChkEmf && cb.IsChecked == true)
+                {
+                    AdvanceTutorial();
+                }
+                else if (_tutorialMode && _tutorialStep == EvidenceTutorialStep.RuleOutEvidence && cb == ChkDots)
+                {
+                    if (cb.IsChecked == false) AdvanceTutorial();
+                    else ShowTutorialStep();
+                }
             }
         }
 
@@ -878,6 +1271,7 @@ namespace PhasOverlay
             _evidenceGivenLimit = _main.EvidenceLimit;
             SyncEvidencePills();
             if (_evidenceGivenLimit != prevLimit) ApplyFilteringEngine();
+            if (_tutorialMode) ShowTutorialStep();
         }
 
         /// <summary>Reflects the evidence-given limit into the pills, and locks them on Weekly.</summary>
@@ -900,6 +1294,12 @@ namespace PhasOverlay
         {
             if (MatchBar == null) return;
             MatchBar.Visibility = BtnMatchSetup.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+
+            if (_tutorialMode && _tutorialStep == EvidenceTutorialStep.OpenSettings
+                && BtnMatchSetup.IsChecked == true)
+            {
+                AdvanceTutorial();
+            }
         }
 
         /// <summary>Applies an edit from the match-setup combos live and persists it.</summary>
@@ -914,7 +1314,7 @@ namespace PhasOverlay
                 {
                     _main.ApplyWeekly(w);
                     SyncMatchControls();
-                    SaveMatchSettings();
+                    if (!_tutorialMode) SaveMatchSettings();
                     return;
                 }
                 _loadingMatch = true;
@@ -952,7 +1352,16 @@ namespace PhasOverlay
                 _loadingMatch = false;
             }
 
-            SaveMatchSettings();
+            if (_tutorialMode && _tutorialStep == EvidenceTutorialStep.ChangeMap
+                && sender == CtxMap && CtxMap.SelectedIndex != _tutorialMapBeforeChange)
+            {
+                BtnMatchSetup.IsChecked = false;
+                AdvanceTutorial();
+            }
+            else if (!_tutorialMode)
+            {
+                SaveMatchSettings();
+            }
         }
 
         /// <summary>Writes the match-setup keys back to settings.txt so edits round-trip.</summary>
@@ -1024,6 +1433,12 @@ namespace PhasOverlay
 
         private void GhostCard_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            if (_tutorialMode)
+            {
+                e.Handled = true;
+                return;
+            }
+
             if (sender is FrameworkElement element && element.DataContext is GhostData ghost)
             {
                 int nextState = (ghost.CardState + 1) % 3;
@@ -1052,7 +1467,13 @@ namespace PhasOverlay
 
             if (sender is FrameworkElement element && element.DataContext is GhostData ghost)
             {
+                if (_tutorialMode
+                    && (_tutorialStep != EvidenceTutorialStep.ExpandGhost || ghost.Name != "Dayan"))
+                {
+                    return;
+                }
                 OpenModalForGhost(ghost);
+                if (_tutorialMode) AdvanceTutorial();
             }
         }
 
@@ -1149,6 +1570,8 @@ namespace PhasOverlay
 
         private void BehaviorAction_Click(object sender, RoutedEventArgs e)
         {
+            if (_tutorialMode) return;
+
             if (sender is Button btn && btn.CommandParameter is BehaviorItem item)
             {
                 var targetGhost = _masterGhostList.Find(g => g.Name == item.TargetGhost);
@@ -1208,6 +1631,11 @@ namespace PhasOverlay
             GhostModalContent.BeginAnimation(OpacityProperty, null);
             GhostModalOverlay.BeginAnimation(OpacityProperty, null);
             GhostModalContent.RenderTransform = new System.Windows.Media.TranslateTransform(0, 40);
+
+            if (_tutorialMode && _tutorialStep == EvidenceTutorialStep.CloseGhost)
+            {
+                AdvanceTutorial();
+            }
         }
 
         private void GhostModalOverlay_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -1228,6 +1656,7 @@ namespace PhasOverlay
         private void PlaySpeed_Click(object sender, RoutedEventArgs e)
         {
             e.Handled = true;
+            if (_tutorialMode) return;
 
             if ((DateTime.Now - _lastClickTime).TotalMilliseconds < 250) return;
             _lastClickTime = DateTime.Now;
@@ -1505,9 +1934,15 @@ namespace PhasOverlay
         private void ResetTracker_Click(object sender, RoutedEventArgs e)
         {
             ResetTracker();
+            if (_tutorialMode && _tutorialStep == EvidenceTutorialStep.ResetTracker)
+            {
+                CompleteTutorial();
+            }
         }
         private void Close_Click(object sender, RoutedEventArgs e)
         {
+            if (_tutorialMode) return;
+
             StopGraphPlayback();
             StopFootstepPlayback();
             this.Hide();
@@ -1516,6 +1951,8 @@ namespace PhasOverlay
         protected override void OnClosing(CancelEventArgs e)
         {
             e.Cancel = true;
+            if (_tutorialMode) return;
+
             StopGraphPlayback();
             StopFootstepPlayback();
             this.Hide();
