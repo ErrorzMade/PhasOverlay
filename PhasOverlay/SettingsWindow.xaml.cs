@@ -563,13 +563,6 @@ namespace PhasOverlay
             };
 
             File.WriteAllLines(_configPath, lines);
-
-            // Legacy positional format. The slot that once held KeyMap is kept as a literal 0 so
-            // the field indices (notably posIdx, read back at settings[21]) stay put for any old
-            // configs still on this format. The map viewer itself is gone.
-            string saveString = $"{MapCombo.SelectedIndex}|{SpeedCombo.SelectedIndex}|{OpacitySlider.Value}|{ScaleSlider.Value}|{finalDurIdx}|{statesStr}|{VolumeSlider.Value}|{_overlay.KeySmudge}|{_overlay.KeyCooldown}|{_overlay.KeyHunt}|{_overlay.KeyObambo}|{_overlay.KeySpeedReset}|{_overlay.KeyBloodMoon}|{_overlay.KeyCursedHunt}|{_overlay.KeySpeedTap}|{_overlay.KeySettings}|{diffIdx}|{customDurIdx}|{_overlay.KeyEvidence}|{_overlay.KeyClear}|0|{posIdx}";
-            string fallbackPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.txt");
-            try { File.WriteAllText(fallbackPath, saveString); } catch { }
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)

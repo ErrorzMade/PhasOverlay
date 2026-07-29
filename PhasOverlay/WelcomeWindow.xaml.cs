@@ -794,12 +794,6 @@ namespace PhasOverlay
                 };
 
                 File.WriteAllLines(configPath, lines);
-
-                // Legacy positional format; the retired KeyMap slot stays as a literal 0 to keep
-                // field indices (posIdx at settings[21]) stable for old configs on this format.
-                string saveString = $"{CmbMap.SelectedIndex}|{CmbSpeed.SelectedIndex}|{SldOpacity.Value}|{SldScale.Value}|{finalDurIdx}|{statesStr}|{_main.MasterVolume}|{_main.KeySmudge}|{_main.KeyCooldown}|{_main.KeyHunt}|{_main.KeyObambo}|{_main.KeySpeedReset}|{_main.KeyBloodMoon}|{_main.KeyCursedHunt}|{_main.KeySpeedTap}|{_main.KeySettings}|{diffIdx}|{customDurIdx}|{_main.KeyEvidence}|{_main.KeyClear}|0|{posIdx}";
-                string fallbackPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.txt");
-                try { File.WriteAllText(fallbackPath, saveString); } catch { }
             }
             catch { }
         }
