@@ -895,10 +895,7 @@ namespace PhasOverlay
 
                 ghost.IsSpeedHighlighted = matches;
             }
-            if (_main != null && GhostItemsControl.ItemsSource is List<GhostData> currentVisible)
-            {
-                _main.UpdatePossibleGhostsUI(currentVisible);
-            }
+            PushPossibleGhostsToOverlay();
         }
 
         public void ClearSpeedHighlight()
@@ -907,10 +904,7 @@ namespace PhasOverlay
             {
                 ghost.IsSpeedHighlighted = false;
             }
-            if (_main != null && GhostItemsControl.ItemsSource is List<GhostData> currentVisible)
-            {
-                _main.UpdatePossibleGhostsUI(currentVisible);
-            }
+            PushPossibleGhostsToOverlay();
         }
 
         private void Evidence_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
