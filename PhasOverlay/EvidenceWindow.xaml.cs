@@ -1320,6 +1320,11 @@ namespace PhasOverlay
             _main.DifficultyIndex = CtxDifficulty.SelectedIndex >= 0 ? CtxDifficulty.SelectedIndex : 1;
             _main.MapSizeIndex = CtxMap.SelectedIndex >= 0 ? CtxMap.SelectedIndex : 0;
 
+            // Reaching here means the selection is not Weekly, so release the Weekly-only locks.
+            CtxMap.IsEnabled = true;
+            CtxMap.Opacity = 1.0;
+            SyncEvidencePills();
+
             bool custom = _main.DifficultyIndex == MainWindow.DiffCustom;
 
             // Presets are locked to 100% ghost speed; snap back if we just left Custom.

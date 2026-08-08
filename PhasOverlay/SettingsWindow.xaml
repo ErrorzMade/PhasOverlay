@@ -225,7 +225,7 @@
 
                         <StackPanel Grid.Column="0">
                             <TextBlock Text="DIFFICULTY" Style="{StaticResource SettingLabel}"/>
-                            <ComboBox x:Name="CmbDifficulty" FontSize="14" Padding="8,6" SelectionChanged="Difficulty_SelectionChanged">
+                            <ComboBox x:Name="CmbDifficulty" Focusable="False" FontSize="14" Padding="8,6" SelectionChanged="Difficulty_SelectionChanged">
                                 <ComboBoxItem Content="Amateur"/>
                                 <ComboBoxItem Content="Intermediate"/>
                                 <ComboBoxItem Content="Professional"/>
@@ -240,7 +240,7 @@
 
                         <StackPanel x:Name="PanelCustomDuration" Grid.Column="2" Visibility="Collapsed">
                             <TextBlock Text="HUNT DURATION" Style="{StaticResource SettingLabel}"/>
-                            <ComboBox x:Name="CmbCustomDuration" FontSize="14" Padding="8,6" SelectionChanged="SilentUpdate_Trigger">
+                            <ComboBox x:Name="CmbCustomDuration" Focusable="False" FontSize="14" Padding="8,6" SelectionChanged="SilentUpdate_Trigger">
                                 <ComboBoxItem Content="Low"/>
                                 <ComboBoxItem Content="Medium"/>
                                 <ComboBoxItem Content="High"/>
@@ -257,7 +257,7 @@
 
                         <StackPanel Grid.Column="0">
                             <TextBlock Text="MAP SIZE" Style="{StaticResource SettingLabel}"/>
-                            <ComboBox x:Name="MapCombo" FontSize="14" Padding="8,6" SelectionChanged="SilentUpdate_Trigger">
+                            <ComboBox x:Name="MapCombo" Focusable="False" FontSize="14" Padding="8,6" SelectionChanged="SilentUpdate_Trigger">
                                 <ComboBoxItem Content="Small"/>
                                 <ComboBoxItem Content="Medium"/>
                                 <ComboBoxItem Content="Large"/>
@@ -266,7 +266,7 @@
 
                         <StackPanel Grid.Column="2">
                             <TextBlock Text="GHOST SPEED" Style="{StaticResource SettingLabel}"/>
-                            <ComboBox x:Name="SpeedCombo" FontSize="14" Padding="8,6" SelectionChanged="SilentUpdate_Trigger">
+                            <ComboBox x:Name="SpeedCombo" Focusable="False" FontSize="14" Padding="8,6" SelectionChanged="SilentUpdate_Trigger">
                                 <ComboBoxItem Content="50% Speed"/>
                                 <ComboBoxItem Content="75% Speed"/>
                                 <ComboBoxItem Content="100% Speed"/>
