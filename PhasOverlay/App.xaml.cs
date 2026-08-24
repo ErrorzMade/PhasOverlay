@@ -10,6 +10,7 @@ namespace PhasOverlay
     public partial class App : Application
     {
         private TrayIconService? _trayIcon;
+        private WeeklyRefreshCoordinator? _weeklyRefresh;
 
         internal const string LinkServiceUrl = "https://phasoverlay-link.phasoverlay-link-worker.workers.dev";
 
@@ -29,6 +30,19 @@ namespace PhasOverlay
                 action => mainWindow.Dispatcher.Invoke(action));
         }
 
+        internal void InitializeWeeklyRefresh(MainWindow mainWindow)
+        {
+            if (_weeklyRefresh != null) return;
+
+            _weeklyRefresh = new WeeklyRefreshCoordinator();
+            _weeklyRefresh.StateChanged += result =>
+            {
+                if (mainWindow.Dispatcher.HasShutdownStarted) return;
+                mainWindow.Dispatcher.BeginInvoke(() => mainWindow.ApplyWeeklyRefreshResult(result));
+            };
+            _weeklyRefresh.Start();
+        }
+
         internal void ShowTrayIntroduction()
         {
             _trayIcon?.ShowIntroduction();
@@ -40,6 +54,8 @@ namespace PhasOverlay
             _trayIcon = null;
             Link?.Dispose();
             Link = null;
+            _weeklyRefresh?.Dispose();
+            _weeklyRefresh = null;
             base.OnExit(e);
         }
     }

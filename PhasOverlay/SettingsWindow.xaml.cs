@@ -76,8 +76,8 @@ namespace PhasOverlay
             InitializeLinkSync();
 
             this.Loaded += (s, e) => DisplayService.CenterOn(this, _overlay.DisplayIndex);
-
-            _ = RefreshWeeklyDataAsync();
+            _overlay.WeeklyDataStateChanged += OnWeeklyDataStateChanged;
+            this.Closed += (s, e) => _overlay.WeeklyDataStateChanged -= OnWeeklyDataStateChanged;
         }
 
         /// <summary>Fills the display list. The picker hides on a single-display machine, but the
@@ -124,17 +124,13 @@ namespace PhasOverlay
             }
         }
 
-        private async Task RefreshWeeklyDataAsync()
+        private void OnWeeklyDataStateChanged(WeeklyUpdateResult result)
         {
-            bool changed = await WeeklyDataService.CheckForUpdatesAsync();
-            if (!changed) return;
+            if (result != WeeklyUpdateResult.Updated) return;
 
-            Dispatcher.Invoke(() =>
-            {
-                RefreshWeeklyComboItem();
-                if (CmbDifficulty.SelectedIndex == MainWindow.DiffWeekly)
-                    Difficulty_SelectionChanged(null, null);
-            });
+            RefreshWeeklyComboItem();
+            if (CmbDifficulty.SelectedIndex == MainWindow.DiffWeekly && LinkRoom?.IsLinked != true)
+                Difficulty_SelectionChanged(null, null);
         }
 
         private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

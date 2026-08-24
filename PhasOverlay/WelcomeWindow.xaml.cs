@@ -152,12 +152,12 @@ namespace PhasOverlay
             RefreshWeeklyComboItem();
 
             Difficulty_SelectionChanged(null, null);
-
-            _ = RefreshWeeklyDataAsync();
+            _main.WeeklyDataStateChanged += OnWeeklyDataStateChanged;
 
             this.Loaded += (s, e) => DisplayService.CenterOn(this, _main.DisplayIndex);
             this.Closed += (s, e) =>
             {
+                _main.WeeklyDataStateChanged -= OnWeeklyDataStateChanged;
                 _inputTimer.Stop();
                 CloseTutorialFootsteps();
             };
@@ -228,17 +228,13 @@ namespace PhasOverlay
             }
         }
 
-        private async Task RefreshWeeklyDataAsync()
+        private void OnWeeklyDataStateChanged(WeeklyUpdateResult result)
         {
-            bool changed = await WeeklyDataService.CheckForUpdatesAsync();
-            if (!changed) return;
+            if (result != WeeklyUpdateResult.Updated) return;
 
-            Dispatcher.Invoke(() =>
-            {
-                RefreshWeeklyComboItem();
-                if (CmbDifficulty.SelectedIndex == MainWindow.DiffWeekly)
-                    Difficulty_SelectionChanged(null, null);
-            });
+            RefreshWeeklyComboItem();
+            if (CmbDifficulty.SelectedIndex == MainWindow.DiffWeekly)
+                Difficulty_SelectionChanged(null, null);
         }
 
         // ------------------------------------------------------------------

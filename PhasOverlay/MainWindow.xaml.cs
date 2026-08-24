@@ -121,6 +121,8 @@ namespace PhasOverlay
         /// <summary>Lets an open Evidence tracker mirror match changes made in Settings live.</summary>
         public void NotifyMatchSettingsChanged() => _evidenceWin?.SyncMatchControls();
 
+        public event Action<WeeklyUpdateResult>? WeeklyDataStateChanged;
+
         public bool IsCompactMode = true;
         public int OverlayPosition = 1;
         public bool AlwaysShowEvidence = false;
@@ -260,7 +262,7 @@ namespace PhasOverlay
             _gameLoop.Tick += GameLoop_Tick;
             _gameLoop.Start();
 
-            _ = RefreshWeeklyAsync();
+            ((App)Application.Current).InitializeWeeklyRefresh(this);
             _ = CheckForAppUpdateAsync();
         }
 
@@ -282,15 +284,11 @@ namespace PhasOverlay
             });
         }
 
-        /// <summary>Pulls a newer weekly.json, re-applying + mirroring it if Weekly is active.</summary>
-        public async Task RefreshWeeklyAsync()
+        internal void ApplyWeeklyRefreshResult(WeeklyUpdateResult result)
         {
-            bool changed = await WeeklyDataService.CheckForUpdatesAsync();
-            if (!changed) return;
-
-            Dispatcher.Invoke(() =>
+            if (result == WeeklyUpdateResult.Updated)
             {
-                if (DifficultyIndex == DiffWeekly)
+                if (DifficultyIndex == DiffWeekly && Link?.IsLinked != true)
                 {
                     var weekly = WeeklyDataService.GetWeekly();
                     if (weekly != null)
@@ -300,7 +298,9 @@ namespace PhasOverlay
                     }
                 }
                 NotifyMatchSettingsChanged();
-            });
+            }
+
+            WeeklyDataStateChanged?.Invoke(result);
         }
 
         protected override void OnSourceInitialized(EventArgs e)

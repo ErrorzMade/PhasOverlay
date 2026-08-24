@@ -298,7 +298,7 @@ namespace PhasOverlay
             };
 
             _ = RefreshGhostDataAsync();
-            _ = RefreshWeeklyDataAsync();
+            _main.WeeklyDataStateChanged += OnWeeklyDataStateChanged;
 
             this.Loaded += (s, e) => DisplayService.CenterOn(this, _main.DisplayIndex);
         }
@@ -661,23 +661,16 @@ namespace PhasOverlay
             }
         }
 
-        private async Task RefreshWeeklyDataAsync()
+        private void OnWeeklyDataStateChanged(WeeklyUpdateResult result)
         {
-            bool changed = await WeeklyDataService.CheckForUpdatesAsync();
+            RefreshStaleDataNotice();
+            if (result != WeeklyUpdateResult.Updated) return;
 
-            Dispatcher.Invoke(() =>
+            RefreshWeeklyComboItem();
+            if (_main.DifficultyIndex == MainWindow.DiffWeekly && LinkRoom?.IsLinked != true)
             {
-                RefreshStaleDataNotice();
-                if (!changed) return;
-
-                RefreshWeeklyComboItem();
-                if (_main.DifficultyIndex == MainWindow.DiffWeekly)
-                {
-                    var w = WeeklyDataService.GetWeekly();
-                    if (w != null) _main.ApplyWeekly(w);
-                    SyncMatchControls();
-                }
-            });
+                SyncMatchControls();
+            }
         }
 
         private void TopBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

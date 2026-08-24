@@ -2,7 +2,9 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace PhasOverlay
@@ -51,6 +53,16 @@ namespace PhasOverlay
         }
     }
 
+    public enum WeeklyUpdateResult
+    {
+        Updated,
+        Unchanged,
+        NetworkFailure,
+        InvalidData,
+        UnsupportedSchema,
+        WriteFailure
+    }
+
     /// <summary>
     /// Owns weekly.json. Same cache/pull-if-changed pipeline as <see cref="GhostDataService"/>,
     /// but with no bundled fallback (shipping one bakes in a stale week).
@@ -84,31 +96,46 @@ namespace PhasOverlay
             return null;
         }
 
-        /// <summary>Pulls the remote weekly into the cache if it changed and is valid; any failure
-        /// keeps the previous copy. Returns true when the cache was updated.</summary>
-        public static async Task<bool> CheckForUpdatesAsync()
+        /// <summary>Pulls a valid changed weekly into the local cache.</summary>
+        public static async Task<WeeklyUpdateResult> CheckForUpdatesAsync(
+            bool revalidate = false,
+            CancellationToken cancellationToken = default)
         {
-            if (!RemoteConfigured) return false;
+            if (!RemoteConfigured) return WeeklyUpdateResult.NetworkFailure;
 
+            string remote;
             try
             {
                 using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(6) };
                 http.DefaultRequestHeaders.Add("User-Agent", "PhasOverlay");
 
-                string remote = await http.GetStringAsync(RemoteUrl).ConfigureAwait(false);
-                if (Parse(remote) == null) return false;
+                using var request = new HttpRequestMessage(HttpMethod.Get, RemoteUrl);
+                if (revalidate)
+                    request.Headers.CacheControl = new CacheControlHeaderValue { NoCache = true };
 
-                string local = "";
-                try { if (File.Exists(LocalPath)) local = File.ReadAllText(LocalPath); } catch { }
-
-                if (Normalize(remote) == Normalize(local)) return false;
-
-                return TryWriteLocal(remote);
+                using var response = await http.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+                remote = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             }
             catch
             {
-                return false;
+                return WeeklyUpdateResult.NetworkFailure;
             }
+
+            WeeklyParseStatus status = ParseCore(remote, out _);
+            if (status == WeeklyParseStatus.UnsupportedSchema)
+            {
+                DataTooNew = true;
+                return WeeklyUpdateResult.UnsupportedSchema;
+            }
+            if (status != WeeklyParseStatus.Valid) return WeeklyUpdateResult.InvalidData;
+
+            string local = "";
+            try { if (File.Exists(LocalPath)) local = File.ReadAllText(LocalPath); } catch { }
+
+            if (Normalize(remote) == Normalize(local)) return WeeklyUpdateResult.Unchanged;
+
+            return TryWriteLocal(remote) ? WeeklyUpdateResult.Updated : WeeklyUpdateResult.WriteFailure;
         }
 
         /// <summary>
@@ -117,24 +144,36 @@ namespace PhasOverlay
         /// </summary>
         public static WeeklyEntry? Parse(string json)
         {
+            WeeklyParseStatus status = ParseCore(json, out var entry);
+            if (status == WeeklyParseStatus.UnsupportedSchema) DataTooNew = true;
+            return status == WeeklyParseStatus.Valid ? entry : null;
+        }
+
+        private enum WeeklyParseStatus
+        {
+            Valid,
+            Invalid,
+            UnsupportedSchema
+        }
+
+        private static WeeklyParseStatus ParseCore(string json, out WeeklyEntry? entry)
+        {
+            entry = null;
             try
             {
                 var dto = JsonSerializer.Deserialize<WeeklyDto>(json, GhostDataService.Json);
-                if (dto == null) return null;
+                if (dto == null) return WeeklyParseStatus.Invalid;
 
                 if (dto.SchemaVersion > MaxSupportedSchema)
-                {
-                    DataTooNew = true;
-                    return null;
-                }
+                    return WeeklyParseStatus.UnsupportedSchema;
 
                 if (!DateTime.TryParse(dto.Date, CultureInfo.InvariantCulture,
                         DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var parsedDate))
-                    return null;
+                    return WeeklyParseStatus.Invalid;
 
-                if (dto.EvidenceGiven is not int ev || ev < 0 || ev > 3) return null;
+                if (dto.EvidenceGiven is not int ev || ev < 0 || ev > 3) return WeeklyParseStatus.Invalid;
 
-                var entry = new WeeklyEntry
+                entry = new WeeklyEntry
                 {
                     Date = parsedDate.Date,
                     Title = dto.Title ?? "",
@@ -150,10 +189,10 @@ namespace PhasOverlay
                 }
                 else
                 {
-                    if (dto.GhostSpeed is not double spd || SpeedToIndex(spd) < 0) return null;
+                    if (dto.GhostSpeed is not double spd || SpeedToIndex(spd) < 0) return WeeklyParseStatus.Invalid;
                     int mapIdx = MapToIndex(dto.MapSize);
                     int huntTier = HuntToTier(dto.HuntDuration);
-                    if (mapIdx < 0 || huntTier < 0) return null;
+                    if (mapIdx < 0 || huntTier < 0) return WeeklyParseStatus.Invalid;
 
                     entry.GhostSpeed = spd;
                     entry.MapSizeIndex = mapIdx;
@@ -161,9 +200,13 @@ namespace PhasOverlay
                 }
 
                 entry.IsOutdated = WeekStartUtc(entry.Date) < WeekStartUtc(DateTime.UtcNow);
-                return entry;
+                return WeeklyParseStatus.Valid;
             }
-            catch { return null; }
+            catch
+            {
+                entry = null;
+                return WeeklyParseStatus.Invalid;
+            }
         }
 
         public static DateTime WeekStartUtc(DateTime t)
