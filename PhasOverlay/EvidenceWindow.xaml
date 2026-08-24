@@ -200,6 +200,28 @@
             </Setter>
         </Style>
 
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+            <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="BtnBorder" Background="#22FF5555" CornerRadius="6" BorderBrush="#55FF5555" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#33FF5555"/>
+                                <Setter TargetName="BtnBorder" Property="BorderBrush" Value="{StaticResource DangerBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#151515"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="CloseButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="#FFAAAAAA"/>
@@ -388,6 +410,28 @@
                             </StackPanel>
                             <Border Height="3" Width="54" Margin="0,8,0,0" CornerRadius="1.5" HorizontalAlignment="Left" Background="{StaticResource AccentUnderline}"/>
                         </StackPanel>
+
+                        <Button x:Name="BtnLink" AutomationProperties.Name="Link"
+                                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,178,0" Height="30"
+                                Cursor="Hand" Click="Link_Click">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="lb" Background="#FF1C1C1F" BorderBrush="#FF2A2A2E" BorderThickness="1" CornerRadius="15" Padding="12,0">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Ellipse x:Name="LinkDot" Width="8" Height="8" Fill="#FF666666" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                            <TextBlock x:Name="LinkChipLabel" Text="LINK" FontSize="11" FontWeight="Bold" Foreground="#FFCCCCCC" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="lb" Property="Background" Value="#FF2D2D30"/>
+                                            <Setter TargetName="lb" Property="BorderBrush" Value="#FFB455FF"/>
+                                            <Setter TargetName="LinkChipLabel" Property="Foreground" Value="White"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
 
                         <ToggleButton x:Name="BtnMatchSetup" AutomationProperties.Name="Game Settings"
                                       HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,42,0" Height="30"
@@ -710,6 +754,115 @@
                 </Grid>
             </Grid>
 
+            <Border x:Name="LinkOverlay" Grid.RowSpan="2" Background="#D8000000" CornerRadius="8" Visibility="Collapsed" MouseLeftButtonDown="LinkOverlay_MouseLeftButtonDown">
+                <Border Background="#FF131317" BorderBrush="#FF2A2A2E" BorderThickness="1" CornerRadius="10"
+                        Width="440" Padding="26" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        MouseLeftButtonDown="ModalContent_MouseLeftButtonDown">
+                    <StackPanel>
+                        <TextBlock Text="LINK" Foreground="White" FontSize="22" FontWeight="Black"/>
+                        <Border Height="3" Width="42" Margin="0,8,0,0" CornerRadius="1.5" HorizontalAlignment="Left" Background="{StaticResource AccentUnderline}"/>
+
+                        <TextBlock x:Name="LinkStatusText" Text="Not connected" Foreground="#FFAAAAAA" FontSize="12"
+                                   Margin="0,16,0,0" TextWrapping="Wrap"/>
+
+                        <StackPanel x:Name="LinkIdlePanel" Margin="0,18,0,0">
+                            <TextBlock Text="YOUR NAME" Foreground="#FF888888" FontSize="10" FontWeight="Bold" Margin="0,0,0,6"/>
+                            <TextBox x:Name="LinkUsernameBox" Height="34" MaxLength="20" FontSize="13"
+                                     Background="#FF1C1C1F" Foreground="White" BorderBrush="#FF2A2A2E" BorderThickness="1"
+                                     Padding="8,0" VerticalContentAlignment="Center"/>
+
+                            <TextBlock Text="ROOM CODE OR INVITE LINK" Foreground="#FF888888" FontSize="10" FontWeight="Bold" Margin="0,14,0,6"/>
+                            <TextBox x:Name="LinkCodeBox" Height="34" FontSize="13"
+                                     Background="#FF1C1C1F" Foreground="White" BorderBrush="#FF2A2A2E" BorderThickness="1"
+                                     Padding="8,0" VerticalContentAlignment="Center"/>
+
+                            <Grid Margin="0,16,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="BtnLinkCreate" Grid.Column="0" Content="CREATE ROOM"
+                                        Style="{StaticResource ModernButton}" Height="36" Click="LinkCreate_Click"/>
+                                <Button x:Name="BtnLinkJoin" Grid.Column="2" Content="JOIN ROOM"
+                                        Style="{StaticResource ModernButton}" Height="36" Click="LinkJoin_Click"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <StackPanel x:Name="LinkRoomPanel" Margin="0,18,0,0" Visibility="Collapsed">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="ROOM CODE" Foreground="#FF888888" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <Button x:Name="BtnLinkCopyCode" AutomationProperties.Name="Copy room code"
+                                        Width="22" Height="22" Margin="8,0,0,0" Cursor="Hand" Click="LinkCopyCode_Click"
+                                        ToolTip="Copy room code" ToolTipService.Placement="Right">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="cb" Background="Transparent" CornerRadius="4">
+                                                <Grid>
+                                                    <Path x:Name="ClipIcon" Width="13" Height="13" Stretch="Uniform" Fill="#FF888888"
+                                                          Data="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/>
+                                                    <Path x:Name="TickIcon" Width="13" Height="13" Stretch="Uniform" Fill="#FFB455FF" Visibility="Collapsed"
+                                                          Data="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                                </Grid>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="cb" Property="Background" Value="#FF2D2D30"/>
+                                                    <Setter TargetName="ClipIcon" Property="Fill" Value="White"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </StackPanel>
+                            <TextBlock x:Name="LinkRoomCodeText" Text="------" Foreground="#FFB455FF" FontSize="28" FontWeight="Black"/>
+
+                            <TextBlock Text="PLAYERS" Foreground="#FF888888" FontSize="10" FontWeight="Bold" Margin="0,16,0,6"/>
+                            <ItemsControl x:Name="LinkRoster">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#FF1C1C1F" BorderBrush="#FF2A2A2E" BorderThickness="1"
+                                                CornerRadius="6" Padding="10,7" Margin="0,0,0,6">
+                                            <Grid>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Name}" Foreground="White" FontSize="13" VerticalAlignment="Center"/>
+                                                    <Border Background="#33B455FF" CornerRadius="8" Padding="7,1" Margin="8,0,0,0"
+                                                            VerticalAlignment="Center" Visibility="{Binding HostBadge}">
+                                                        <TextBlock Text="HOST" Foreground="#FFB455FF" FontSize="9" FontWeight="Bold"/>
+                                                    </Border>
+                                                </StackPanel>
+                                                <Button Content="{Binding ActionLabel}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                        Style="{StaticResource ModernButton}" Height="26" MinWidth="118" Padding="10,0" FontSize="10"
+                                                        Visibility="{Binding ActionVisible}" Tag="{Binding Id}" Click="LinkRowAction_Click"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <Grid x:Name="LinkRenameRow" Margin="0,10,0,0" Visibility="Collapsed">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="LinkRenameBox" Grid.Column="0" Height="36" MaxLength="20" FontSize="13"
+                                         Background="#FF1C1C1F" Foreground="White" BorderBrush="#FF2A2A2E" BorderThickness="1"
+                                         Padding="8,0" VerticalContentAlignment="Center"/>
+                                <Button x:Name="BtnLinkRenameSave" Grid.Column="2" Content="SAVE" MinWidth="90"
+                                        Style="{StaticResource ModernButton}" Height="36" Click="LinkRenameSave_Click"/>
+                            </Grid>
+
+                            <Button x:Name="BtnLinkLeave" Content="LEAVE" Margin="0,10,0,0"
+                                    Style="{StaticResource DangerButton}" Height="36" Click="LinkLeave_Click"/>
+                        </StackPanel>
+
+                        <Button x:Name="BtnLinkClose" Content="CLOSE" Style="{StaticResource ModernButton}"
+                                Height="36" Margin="0,16,0,0" Click="LinkClose_Click"/>
+                    </StackPanel>
+                </Border>
+            </Border>
+
             <Border x:Name="GhostModalOverlay" Grid.RowSpan="2" Background="#D8000000" CornerRadius="8" Visibility="Collapsed" MouseLeftButtonDown="GhostModalOverlay_MouseLeftButtonDown">
                 <Border x:Name="GhostModalContent" Style="{StaticResource AnimatedModalStyle}" Background="#FF131317" BorderBrush="#FF2A2A2E" BorderThickness="1" CornerRadius="10" Width="1000" Height="650" Padding="30" HorizontalAlignment="Center" VerticalAlignment="Center" MouseLeftButtonDown="ModalContent_MouseLeftButtonDown">
                     <Grid>
@@ -982,6 +1135,31 @@
                     </StackPanel>
 
                 </Grid>
+            </Border>
+
+            <Border x:Name="LinkConfirmOverlay" Grid.RowSpan="2" Background="#D8000000" CornerRadius="8"
+                    Visibility="Collapsed" MouseLeftButtonDown="LinkConfirmCancel_Click">
+                <Border Background="#FF131317" BorderBrush="#FF2A2A2E" BorderThickness="1" CornerRadius="10"
+                        Width="380" Padding="26" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        MouseLeftButtonDown="ModalContent_MouseLeftButtonDown">
+                    <StackPanel>
+                        <TextBlock x:Name="LinkConfirmTitle" Text="Leave room" Foreground="White" FontSize="18" FontWeight="Black"/>
+                        <Border Height="3" Width="34" Margin="0,8,0,0" CornerRadius="1.5" HorizontalAlignment="Left" Background="{StaticResource AccentUnderline}"/>
+                        <TextBlock x:Name="LinkConfirmText" Text="Are you sure?" Foreground="#FFCCCCCC" FontSize="13"
+                                   TextWrapping="Wrap" Margin="0,16,0,0"/>
+                        <Grid Margin="0,20,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="10"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button x:Name="BtnLinkConfirmCancel" Grid.Column="0" Content="CANCEL"
+                                    Style="{StaticResource ModernButton}" Height="36" Click="LinkConfirmCancel_Click"/>
+                            <Button x:Name="BtnLinkConfirmOk" Grid.Column="2" Content="LEAVE"
+                                    Style="{StaticResource DangerButton}" Height="36" Click="LinkConfirmOk_Click"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
             </Border>
 
         </Grid>

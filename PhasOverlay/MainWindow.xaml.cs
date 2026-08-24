@@ -70,10 +70,6 @@ namespace PhasOverlay
         public double MasterVolume = 1.0;
         public int EvidenceLimit = 3;
 
-        // At or below this many possible ghosts, the overlay's cards also list each ghost's
-        // evidence. That is the point where "what do I still need to find?" becomes the question.
-        private const int EvidenceTagThreshold = 4;
-
         // Kept in sync by Settings/Welcome/Evidence; these produce BaseHuntDuration.
         public int DifficultyIndex = 1;   // 0 Amateur .. 4 Insanity, 5 Weekly, 6 Custom
         public int MapSizeIndex = 0;      // 0 Small, 1 Medium, 2 Large
@@ -98,7 +94,7 @@ namespace PhasOverlay
             if (DifficultyIndex == 0) return 0;                       // Amateur -> Low
             if (DifficultyIndex == 1) return 1;                       // Intermediate -> Med
             if (DifficultyIndex >= 2 && DifficultyIndex <= 4) return 2; // Prof/Nightmare/Insanity -> High
-            if (DifficultyIndex == DiffWeekly) return ActiveWeekly?.HuntTier ?? 2;
+            if (DifficultyIndex == DiffWeekly) return _authoritativeWeeklyHuntTier ?? ActiveWeekly?.HuntTier ?? 2;
             if (DifficultyIndex == DiffCustom) return Math.Clamp(CustomDurationIndex, 0, 2);
             return 1;
         }
@@ -113,6 +109,7 @@ namespace PhasOverlay
         /// <summary>Applies a weekly challenge's fixed settings and recomputes hunt length.</summary>
         public void ApplyWeekly(WeeklyEntry w)
         {
+            _authoritativeWeeklyHuntTier = null;
             ActiveWeekly = w;
             DifficultyIndex = DiffWeekly;
             MapSizeIndex = w.MapSizeIndex;
@@ -250,6 +247,7 @@ namespace PhasOverlay
 
             _evidenceWin = new EvidenceWindow(this);
             SyncEvidenceUI();
+            InitializeLink();
 
             this.SizeChanged += (s, e) => UpdateWindowPosition();
 
@@ -348,6 +346,33 @@ namespace PhasOverlay
             }
         }
 
+        [DllImport("user32.dll")]
+        private static extern IntPtr WindowFromPoint(NativePoint point);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetAncestor(IntPtr hWnd, uint flags);
+
+        /// <summary>
+        /// True when one of this app's other windows sits under the cursor. WindowFromPoint skips
+        /// click-through windows, so the overlay itself never answers here, and a tracker window
+        /// overlapping the evidence column keeps its own clicks.
+        /// </summary>
+        private bool OtherAppWindowAt(NativePoint cursor)
+        {
+            IntPtr under = WindowFromPoint(cursor);
+            if (under == IntPtr.Zero) return false;
+
+            IntPtr root = GetAncestor(under, 2); // GA_ROOT
+            if (root == IntPtr.Zero || root == _hwnd) return false;
+
+            foreach (Window window in Application.Current.Windows)
+            {
+                if (window == this || !window.IsVisible) continue;
+                if (new WindowInteropHelper(window).Handle == root) return true;
+            }
+            return false;
+        }
+
         /// <summary>
         /// Keeps the overlay click-through everywhere except the evidence panel, which is the
         /// only interactive surface (its ghost cards open the tracker). The timers panel is
@@ -362,7 +387,8 @@ namespace PhasOverlay
                 return;
             }
 
-            ApplyClickThrough(!IsPointOverElement(EvidenceColumnBorder, cursor.X, cursor.Y));
+            bool overColumn = IsPointOverElement(EvidenceColumnBorder, cursor.X, cursor.Y);
+            ApplyClickThrough(!overColumn || OtherAppWindowAt(cursor));
 
             if (TopCenterBorder == null) return;
 
@@ -428,6 +454,14 @@ namespace PhasOverlay
             }
         }
 
+        private static bool OwnProcessForeground()
+        {
+            IntPtr hWnd = GetForegroundWindow();
+            if (hWnd == IntPtr.Zero) return false;
+            GetWindowThreadProcessId(hWnd, out uint processId);
+            return processId == (uint)Environment.ProcessId;
+        }
+
         private bool IsGameOrOverlayFocused()
         {
             IntPtr hWnd = GetForegroundWindow();
@@ -480,14 +514,45 @@ namespace PhasOverlay
         }
 
         // True if the (possibly Shift-flagged) binding is currently held.
+        // Base keys bound both plain and with Shift. Only those need a plain binding to reject
+        // Shift; anything else would just stop working while the player holds run.
+        private static readonly HashSet<int> _contestedKeys = new();
+
         public static bool KeyHeld(int keyWithFlags, bool shiftDown)
         {
             bool pressed = (GetAsyncKeyState(keyWithFlags & 0xFFFF) & 0x8000) != 0;
+            if (!pressed) return false;
 
-            // Shift must match exactly. The timer actions (F1-F7) and the evidence actions
-            // (Shift + F1-F7) share physical keys, so a plain binding has to reject Shift or
-            // one keypress would trigger both.
-            return (keyWithFlags & ShiftFlag) != 0 ? (pressed && shiftDown) : (pressed && !shiftDown);
+            if ((keyWithFlags & ShiftFlag) != 0) return shiftDown;
+            return !shiftDown || !_contestedKeys.Contains(keyWithFlags & 0xFFFF);
+        }
+
+        /// <summary>
+        /// Recomputed from the live bindings, so rebinding two actions onto one key restores the
+        /// exact-Shift rule for that key alone.
+        /// </summary>
+        private void RefreshContestedKeys()
+        {
+            int[] bindings =
+            {
+                KeySmudge, KeyCooldown, KeyHunt, KeyObambo, KeySpeedReset, KeyBloodMoon, KeyCursedHunt,
+                KeySpeedTap, KeySettings, KeyEvidence, KeyClear, KeyToggleEv,
+                KeyEv1, KeyEv2, KeyEv3, KeyEv4, KeyEv5, KeyEv6, KeyEv7
+            };
+
+            _contestedKeys.Clear();
+            for (int i = 0; i < bindings.Length; i++)
+            {
+                int baseKey = bindings[i] & 0xFFFF;
+                bool shifted = (bindings[i] & ShiftFlag) != 0;
+                for (int j = 0; j < bindings.Length; j++)
+                {
+                    if (i == j || (bindings[j] & 0xFFFF) != baseKey) continue;
+                    if (((bindings[j] & ShiftFlag) != 0) == shifted) continue;
+                    _contestedKeys.Add(baseKey);
+                    break;
+                }
+            }
         }
 
         public void ResetKeybinds()
@@ -587,14 +652,89 @@ namespace PhasOverlay
             }
         }
 
+        private string _overlayGhostSignature = "";
+
+        /// <summary>
+        /// Rebuilding tears down and recreates every card, which forces the compositor to push the
+        /// whole layered overlay again. That is a visible hitch over a running game, so an unchanged
+        /// list must not repaint. Link makes this matter: remote changes arrive during play.
+        /// </summary>
         public void UpdatePossibleGhostsUI(IEnumerable<GhostData> ghosts)
         {
             if (OverlayGhostList == null) return;
+
+            var materialised = ghosts as IList<GhostData> ?? ghosts.ToList();
+            string signature = BuildOverlayGhostSignature(materialised);
+            if (signature == _overlayGhostSignature) return;
+            _overlayGhostSignature = signature;
+
+            UpdatePossibleGhostsUICore(materialised);
+        }
+
+        private string BuildOverlayGhostSignature(IList<GhostData> ghosts)
+        {
+            bool isSpeedActive = _recentTaps.Count > 1;
+            var builder = new System.Text.StringBuilder(256);
+            int shown = 0;
+
+            foreach (var ghost in ghosts)
+            {
+                if (isSpeedActive && !ghost.IsSpeedHighlighted) continue;
+                shown++;
+            }
+
+            bool showTags = ShouldShowEvidenceTags();
+            builder.Append(shown).Append(isSpeedActive ? '1' : '0').Append(showTags ? '1' : '0');
+
+            foreach (var ghost in ghosts)
+            {
+                if (isSpeedActive && !ghost.IsSpeedHighlighted) continue;
+                string name = ghost.Name ?? "";
+                string fact = ghost.ShortFact ?? "";
+                builder.Append('|').Append(name.Length).Append(':').Append(name)
+                    .Append(ghost.IsSpeedHighlighted ? '1' : '0')
+                    .Append(fact.Length).Append(':').Append(fact);
+                if (!showTags) continue;
+                foreach (var icon in ghost.EvidenceIcons)
+                {
+                    string fullName = icon.FullName ?? "";
+                    string label = icon.Label ?? "";
+                    builder.Append(';').Append(fullName.Length).Append(':').Append(fullName)
+                        .Append(label.Length).Append(':').Append(label)
+                        .Append((char)('0' + icon.State));
+                }
+            }
+            return builder.ToString();
+        }
+
+        private bool ShouldShowEvidenceTags()
+        {
+            int requiredConfirmed = EvidenceLimit switch
+            {
+                1 => 0,
+                2 => 1,
+                3 => 2,
+                _ => int.MaxValue
+            };
+
+            if (requiredConfirmed == 0) return true;
+            if (_evidenceWin == null || requiredConfirmed == int.MaxValue) return false;
+
+            int confirmed = 0;
+            for (int i = 1; i <= 7; i++)
+            {
+                if (_evidenceWin.GetEvidenceState(i) == true && ++confirmed >= requiredConfirmed)
+                    return true;
+            }
+            return false;
+        }
+
+        private void UpdatePossibleGhostsUICore(IEnumerable<GhostData> ghosts)
+        {
             OverlayGhostList.Children.Clear();
 
             bool isSpeedActive = _recentTaps.Count > 1;
 
-            // Materialise the visible set first so the card layout can depend on how many remain.
             var shown = new List<GhostData>();
             foreach (var g in ghosts)
             {
@@ -602,10 +742,7 @@ namespace PhasOverlay
                 shown.Add(g);
             }
 
-            // Evidence tags only earn their vertical space once the list is short enough to act
-            // on. While a dozen ghosts are still possible they're noise, and the panel only fits
-            // ~2-3 cards before scrolling.
-            bool showTags = shown.Count <= EvidenceTagThreshold;
+            bool showTags = ShouldShowEvidenceTags();
 
             foreach (var ghost in shown)
             {
@@ -990,7 +1127,7 @@ namespace PhasOverlay
                         _lastEvSoundTime = DateTime.Now;
                     }
 
-                    if (!ModStates[7])
+                    if (!ModStates[7] && notificationText.Length > 0)
                     {
                         ShowNotification(notificationText);
                     }
@@ -1187,6 +1324,7 @@ namespace PhasOverlay
         private void GameLoop_Tick(object? sender, EventArgs e)
         {
             bool shiftDown = (GetAsyncKeyState(0x10) & 0x8000) != 0; // VK_SHIFT
+            RefreshContestedKeys();
 
             bool k1 = KeyHeld(KeySmudge, shiftDown);
             bool k2 = KeyHeld(KeyCooldown, shiftDown);
@@ -1212,7 +1350,12 @@ namespace PhasOverlay
             bool pageUp = (GetAsyncKeyState(0x21) & 0x8000) != 0;
             bool pageDown = (GetAsyncKeyState(0x22) & 0x8000) != 0;
 
-            bool isAppFocused = IsGameOrOverlayFocused();
+            // A binding must never fire while its own letter is being typed into a field. Gated on
+            // this app being foreground, so a stale focused field can never deaden hotkeys in game.
+            // The held-key bookkeeping below still runs, so releasing the key is not a fresh press.
+            bool typing = OwnProcessForeground()
+                && Keyboard.FocusedElement is System.Windows.Controls.Primitives.TextBoxBase;
+            bool isAppFocused = !typing && IsGameOrOverlayFocused();
 
             if (!IsTutorialActive && home && !_homeLast && isAppFocused)
             {
@@ -1251,8 +1394,8 @@ namespace PhasOverlay
                 if (kEv6 && !_kEv6Last) HandleEvidenceShortcut(6);
                 if (kEv7 && !_kEv7Last) HandleEvidenceShortcut(7);
 
-                if (pageUp) { BgBrush.Opacity = Math.Min(1.0, BgBrush.Opacity + 0.05); }
-                if (pageDown) { BgBrush.Opacity = Math.Max(0.0, BgBrush.Opacity - 0.05); }
+                if (pageUp && !typing) { BgBrush.Opacity = Math.Min(1.0, BgBrush.Opacity + 0.05); }
+                if (pageDown && !typing) { BgBrush.Opacity = Math.Max(0.0, BgBrush.Opacity - 0.05); }
             }
 
             _k1Last = k1; _k2Last = k2; _k3Last = k3; _k4Last = k4;
@@ -1331,6 +1474,7 @@ namespace PhasOverlay
             ResetPulse(HuntText);
 
             ResetSpeedTap(false);
+            // Local timers and modifiers clear now; the shared board waits for the room's own reset.
             _evidenceWin?.ResetTracker();
 
             IsBloodMoonActive = false;

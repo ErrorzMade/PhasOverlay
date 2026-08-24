@@ -11,9 +11,22 @@ namespace PhasOverlay
     {
         private TrayIconService? _trayIcon;
 
+        internal const string LinkServiceUrl = "https://phasoverlay-link.phasoverlay-link-worker.workers.dev";
+
+        /// <summary>Owned here, not by a window, since the room outlives every window's visibility.</summary>
+        public Link.LinkCoordinator? Link { get; private set; }
+
         internal void InitializeTray(MainWindow mainWindow)
         {
             _trayIcon ??= new TrayIconService(mainWindow);
+        }
+
+        internal void InitializeLink(MainWindow mainWindow)
+        {
+            Link ??= new Link.LinkCoordinator(
+                new System.Uri(LinkServiceUrl),
+                new Link.LinkStorage(),
+                action => mainWindow.Dispatcher.Invoke(action));
         }
 
         internal void ShowTrayIntroduction()
@@ -25,6 +38,8 @@ namespace PhasOverlay
         {
             _trayIcon?.Dispose();
             _trayIcon = null;
+            Link?.Dispose();
+            Link = null;
             base.OnExit(e);
         }
     }

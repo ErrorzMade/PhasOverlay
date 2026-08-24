@@ -73,6 +73,7 @@ namespace PhasOverlay
 
             _isLoaded = true;
             Difficulty_SelectionChanged(null, null);
+            InitializeLinkSync();
 
             this.Loaded += (s, e) => DisplayService.CenterOn(this, _overlay.DisplayIndex);
 
@@ -378,7 +379,7 @@ namespace PhasOverlay
             if (diffIdx == 0) return 0;
             if (diffIdx == 1) return 1;
             if (diffIdx >= 2 && diffIdx <= 4) return 2;
-            if (diffIdx == MainWindow.DiffWeekly) return _overlay.ActiveWeekly?.HuntTier ?? 2;
+            if (diffIdx == MainWindow.DiffWeekly) return _overlay.ResolveHuntTier();
             if (diffIdx == MainWindow.DiffCustom) return CmbCustomDuration.SelectedIndex >= 0 ? CmbCustomDuration.SelectedIndex : 1;
             return 1;
         }
@@ -386,6 +387,7 @@ namespace PhasOverlay
         private void SilentUpdate_Trigger(object sender, SelectionChangedEventArgs e)
         {
             if (!_isLoaded || _overlay == null) return;
+            if (LinkOwnsMatchSettings()) return;
 
             if (CmbDifficulty.SelectedIndex == MainWindow.DiffWeekly && _overlay.ActiveWeekly != null)
             {
@@ -510,9 +512,13 @@ namespace PhasOverlay
             statesStr += TglEvidence.IsChecked == true ? "1" : "0";
             statesStr += TglGhosts.IsChecked == true ? "1" : "0";
 
-            int finalDurIdx = GetResolvedDurationIndex();
-            int diffIdx = CmbDifficulty.SelectedIndex >= 0 ? CmbDifficulty.SelectedIndex : 1;
-            int customDurIdx = CmbCustomDuration.SelectedIndex >= 0 ? CmbCustomDuration.SelectedIndex : 1;
+            // Match settings come from the overlay, never this window's combos. While linked the
+            // room owns them, and closing a stale window must not roll them back.
+            int finalDurIdx = _overlay.ResolveHuntTier();
+            int diffIdx = _overlay.DifficultyIndex;
+            int customDurIdx = _overlay.CustomDurationIndex;
+            int mapIdx = _overlay.MapSizeIndex;
+            int speedIdx = MainWindow.SpeedMultiplierToIndex(_overlay.SpeedMultiplierSetting);
             int posIdx = CmbPosition.SelectedIndex >= 0 ? CmbPosition.SelectedIndex : 1; // Default to Center
 
             string appDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PhasOverlay");
@@ -521,11 +527,11 @@ namespace PhasOverlay
             string[] lines = {
                 "[Game Settings]",
                 "SettingsVersion=2",
-                $"MapSize={MapCombo.SelectedIndex}",
+                $"MapSize={mapIdx}",
                 $"Difficulty={diffIdx}",
                 $"CustomDuration={customDurIdx}",
                 $"HuntDuration={finalDurIdx}",
-                $"GhostSpeed={SpeedCombo.SelectedIndex}",
+                $"GhostSpeed={speedIdx}",
                 $"EvidenceLimit={_overlay.EvidenceLimit}",
                 "",
                 "[Overlay Display]",
@@ -562,7 +568,10 @@ namespace PhasOverlay
                 $"KeyEv7={_overlay.KeyEv7}"
             };
 
-            File.WriteAllLines(_configPath, lines);
+            lock (MainWindow.SettingsFileGate)
+            {
+                File.WriteAllLines(_configPath, lines);
+            }
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)

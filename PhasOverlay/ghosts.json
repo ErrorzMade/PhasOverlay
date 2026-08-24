@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-21",
+  "updatedAt": "2026-08-03",
   "ghosts": [
     {
       "name": "Aswang",
@@ -19,7 +19,7 @@
       "canHunt": [
         "normal"
       ],
-      "tell": "TELLS\n• Reaches max LOS speed in 8.667s instead of the standard 13s.\n• Hunt immediately ends if the ghost enters an official hiding spot that contains a detected player.\n\nBEHAVIORS\n• If a hunt finishes because of hiding spot entry tracking rules, the entity targets that player location instantly upon starting the next sequence.",
+      "tell": "TELLS\n• Reaches max LOS speed in 8.667s instead of the standard 13s.\n• Hunt immediately ends if the ghost enters an official hiding spot that contains a detected player.\n\nBEHAVIORS\n• If a hunt ends when the ghost enters the same official hiding spot as the player, the ghost will walk towards that player's location at the start of the next hunt, even during the grace period.",
       "speedGraph": {
         "base": 1.53,
         "max": 2.53,
@@ -30,6 +30,11 @@
           "type": "mark",
           "prefix": "Tell (Definitive): ",
           "text": "If the ghost enters your hiding spot but doesn't kill you and the hunt ends, it's an Aswang."
+        },
+        {
+          "type": "mark",
+          "prefix": "Tell (Definitive): ",
+          "text": "If the ghost moves through salt or a motion sensor during the grace period before the ghost is actually visible, it's an Aswang."
         }
       ]
     },

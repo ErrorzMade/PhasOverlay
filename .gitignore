@@ -21,6 +21,9 @@ settings.txt
 # Private working notes for Claude (never publish)
 CLAUDE.md
 
+# Protocol conformance harness, not part of the shipped app
+PhasOverlay.Link.Tests/
+
 # Claude Code local session/permission state — can contain local machine paths
 .claude/
 

@@ -433,7 +433,7 @@ namespace PhasOverlay
                 TglHuntVeryEarly, TglHuntEarly, TglHuntNormal, TglHuntLate,
                 TglSpeedSlow, TglSpeedNormal, TglSpeedFast,
                 TglEv0, TglEv1, TglEv2, TglEv3,
-                BtnResetTracker, BtnMatchSetup, GhostScrollViewer,
+                BtnResetTracker, BtnMatchSetup, BtnLink, GhostScrollViewer,
                 CtxDifficulty, CtxMap, CtxHunt, CtxSpeed
             };
         }
@@ -715,6 +715,9 @@ namespace PhasOverlay
             }
 
             if (cb == null || !cb.IsEnabled) return null;
+            // Empty means sent but not yet authoritative: the caller still gives audio feedback,
+            // without a notification claiming a state the room has not agreed to.
+            if (LinkOwnsEvidence(cb)) return "";
 
             if (cb.IsChecked == null) cb.IsChecked = true;
             else if (cb.IsChecked == true) cb.IsChecked = false;
@@ -920,6 +923,8 @@ namespace PhasOverlay
                     return;
                 }
 
+                if (LinkOwnsEvidence(cb)) return;
+
                 if (cb.IsChecked == null) cb.IsChecked = true;
                 else if (cb.IsChecked == true) cb.IsChecked = false;
                 else cb.IsChecked = null;
@@ -948,8 +953,15 @@ namespace PhasOverlay
                 if (clicked != TglEv2) TglEv2.IsChecked = false;
                 if (clicked != TglEv3) TglEv3.IsChecked = false;
 
-                _evidenceGivenLimit = clicked == TglEv0 ? 0 : clicked == TglEv1 ? 1 : clicked == TglEv2 ? 2 : 3;
+                int requested = clicked == TglEv0 ? 0 : clicked == TglEv1 ? 1 : clicked == TglEv2 ? 2 : 3;
 
+                if (LinkOwnsEvidenceGiven(requested))
+                {
+                    SyncEvidencePills();
+                    return;
+                }
+
+                _evidenceGivenLimit = requested;
                 _main.EvidenceLimit = _evidenceGivenLimit;
                 SaveEvidenceLimitToSettings();
 
@@ -1300,6 +1312,7 @@ namespace PhasOverlay
         private void CtxMatch_Changed(object sender, SelectionChangedEventArgs e)
         {
             if (_loadingMatch || _main == null) return;
+            if (LinkOwnsMatchSettings()) return;
 
             if (CtxDifficulty.SelectedIndex == MainWindow.DiffWeekly)
             {
@@ -1384,26 +1397,29 @@ namespace PhasOverlay
                     ["EvidenceLimit"] = _main.EvidenceLimit.ToString(),
                 };
 
-                var lines = new List<string>(System.IO.File.ReadAllLines(configPath));
-                foreach (var kv in updates)
+                lock (MainWindow.SettingsFileGate)
                 {
-                    bool found = false;
-                    for (int i = 0; i < lines.Count; i++)
+                    var lines = new List<string>(System.IO.File.ReadAllLines(configPath));
+                    foreach (var kv in updates)
                     {
-                        if (lines[i].StartsWith(kv.Key + "="))
+                        bool found = false;
+                        for (int i = 0; i < lines.Count; i++)
                         {
-                            lines[i] = $"{kv.Key}={kv.Value}";
-                            found = true;
-                            break;
+                            if (lines[i].StartsWith(kv.Key + "="))
+                            {
+                                lines[i] = $"{kv.Key}={kv.Value}";
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found)
+                        {
+                            int insertIdx = lines.IndexOf("[Game Settings]") + 1;
+                            if (insertIdx > 0) lines.Insert(insertIdx, $"{kv.Key}={kv.Value}");
                         }
                     }
-                    if (!found)
-                    {
-                        int insertIdx = lines.IndexOf("[Game Settings]") + 1;
-                        if (insertIdx > 0) lines.Insert(insertIdx, $"{kv.Key}={kv.Value}");
-                    }
+                    System.IO.File.WriteAllLines(configPath, lines);
                 }
-                System.IO.File.WriteAllLines(configPath, lines);
             }
             catch { }
         }
@@ -1441,6 +1457,7 @@ namespace PhasOverlay
             if (sender is FrameworkElement element && element.DataContext is GhostData ghost)
             {
                 int nextState = (ghost.CardState + 1) % 3;
+                if (LinkOwnsCard(ghost.Name, nextState)) return;
 
                 if (nextState == 1)
                 {
@@ -1576,6 +1593,12 @@ namespace PhasOverlay
                 var targetGhost = _masterGhostList.Find(g => g.Name == item.TargetGhost);
                 if (targetGhost != null)
                 {
+                    if (LinkOwnsCard(targetGhost.Name, item.ActionType == 1 ? 1 : 2))
+                    {
+                        CloseGhostModal();
+                        return;
+                    }
+
                     if (item.ActionType == 1) // Mark
                     {
                         foreach (var g in _masterGhostList)
@@ -1899,6 +1922,12 @@ namespace PhasOverlay
 
         private void HuntPill_Click(object sender, RoutedEventArgs e)
         {
+            if (sender is ToggleButton pill && LinkOwnsFilter("hunt", HuntKeyFor(pill), pill.IsChecked == true))
+            {
+                pill.IsChecked = !pill.IsChecked;
+                return;
+            }
+
             if (sender is ToggleButton clicked && clicked.IsChecked == true)
             {
                 if (clicked != TglHuntVeryEarly) TglHuntVeryEarly.IsChecked = false;
@@ -1912,11 +1941,23 @@ namespace PhasOverlay
 
         private void SpeedPill_Click(object sender, RoutedEventArgs e)
         {
+            if (sender is ToggleButton pill && LinkOwnsFilter("speed", SpeedKeyFor(pill), pill.IsChecked == true))
+            {
+                pill.IsChecked = !pill.IsChecked;
+                return;
+            }
+
             ApplyFilteringEngine();
         }
 
         public void ResetTracker()
         {
+            if (LinkOwnsReset())
+            {
+                ResetTrackerLocalEffects();
+                return;
+            }
+
             ChkEmf.IsChecked = null; ChkDots.IsChecked = null; ChkUv.IsChecked = null;
             ChkFreezing.IsChecked = null; ChkOrb.IsChecked = null; ChkWriting.IsChecked = null;
             ChkBox.IsChecked = null;
