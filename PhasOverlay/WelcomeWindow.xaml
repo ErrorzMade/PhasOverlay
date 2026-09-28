@@ -14,37 +14,26 @@
             <Setter Property="Margin" Value="0,0,0,6"/>
         </Style>
 
-        <Style x:Key="ModernSwitch" TargetType="CheckBox">
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Margin" Value="0,0,0,14"/>
+        <!-- The Settings window's module segments, stretched to fill a two way choice. -->
+        <Style x:Key="ModeSeg" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="#FF8A8A92"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template">
                 <Setter.Value>
-                    <ControlTemplate TargetType="CheckBox">
-                        <Grid Background="Transparent">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="40"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Border x:Name="BgBorder" Width="36" Height="20" CornerRadius="10" Background="#FF2A2A2E" HorizontalAlignment="Left"/>
-                            <Ellipse x:Name="Thumb" Width="14" Height="14" Fill="#FFAAAAAA" HorizontalAlignment="Left" Margin="3,0,0,0"/>
-                            <ContentPresenter Grid.Column="1" VerticalAlignment="Center" Margin="5,0,0,0"/>
-                        </Grid>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="seg" CornerRadius="12" Background="Transparent" Padding="0,7">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="BgBorder" Property="Background" Value="#FF3F3F46"/>
+                                <Setter TargetName="seg" Property="Background" Value="#FF2D2D30"/>
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="BgBorder" Property="Background" Value="#FFB455FF"/>
-                                <Setter TargetName="Thumb" Property="Fill" Value="#FF151515"/>
-                                <Setter TargetName="Thumb" Property="Margin" Value="19,0,0,0"/>
-                            </Trigger>
-                            <Trigger Property="IsChecked" Value="False">
-                                <Setter TargetName="BgBorder" Property="Background" Value="#FF2A2A2E"/>
-                                <Setter TargetName="Thumb" Property="Fill" Value="#FFAAAAAA"/>
-                                <Setter TargetName="Thumb" Property="Margin" Value="3,0,0,0"/>
+                                <Setter TargetName="seg" Property="Background" Value="#FFB455FF"/>
+                                <Setter Property="Foreground" Value="#FF151515"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -298,8 +287,15 @@
                             </Grid>
                             <Slider x:Name="SldOpacity" Minimum="0" Maximum="1" Value="0.8" TickFrequency="0.05" IsSnapToTickEnabled="True" IsMoveToPointEnabled="True" ValueChanged="SldOpacity_ValueChanged" Margin="0,0,0,18"/>
 
-                            <TextBlock Text="DISPLAY MODE" Style="{StaticResource SettingLabel}"/>
-                            <CheckBox x:Name="ChkPersistentOverlay" Content="Persistent Overlay" Style="{StaticResource ModernSwitch}" Click="PersistentMode_Click"/>
+                            <TextBlock Text="OVERLAY MODULES" Style="{StaticResource SettingLabel}"/>
+                            <Border Background="#FF1C1C1F" CornerRadius="15" Padding="3">
+                                <UniformGrid Columns="2">
+                                    <RadioButton x:Name="RbModulesAuto" GroupName="SetupModules" Content="Auto Hide" IsChecked="True"
+                                                 Style="{StaticResource ModeSeg}" Checked="ModulePreset_Checked"/>
+                                    <RadioButton x:Name="RbModulesAlways" GroupName="SetupModules" Content="Always Show"
+                                                 Style="{StaticResource ModeSeg}" Checked="ModulePreset_Checked"/>
+                                </UniformGrid>
+                            </Border>
                         </StackPanel>
                     </Grid>
 

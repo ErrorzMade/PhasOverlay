@@ -58,7 +58,11 @@ namespace PhasOverlay
         private bool _spaceLast = false, _homeLast = false;
 
         private bool _kEvidenceLast = false, _kClearLast = false;
-        private bool _kToggleEvLast = false;
+        private bool _kToggleEvLast = false, _kMapLast = false;
+        private bool _kMapHoldLast, _mapHoldArmed, _mapHoldShown, _mapHoldTap;
+        private bool _kLeftLast, _kRightLast, _kUpLast, _kDownLast;
+        private DateTime _mapHoldStart;
+        private const double MapTapMaxMs = 250;
 
         private bool _kEv1Last = false, _kEv2Last = false, _kEv3Last = false;
         private bool _kEv4Last = false, _kEv5Last = false, _kEv6Last = false, _kEv7Last = false;
@@ -123,15 +127,29 @@ namespace PhasOverlay
 
         public event Action<WeeklyUpdateResult>? WeeklyDataStateChanged;
 
-        public bool IsCompactMode = true;
         public int OverlayPosition = 1;
-        public bool AlwaysShowEvidence = false;
         public bool IsOverlayEvHidden = false; // Tracks manual visibility toggle
 
         public DateTime LastSettingsPreviewTime = DateTime.MinValue;
         public bool IsTutorialActive = false;
 
-        public bool[] ModStates = new bool[] { true, true, true, true, true, true, true, true, true };
+        // Lets the map hold key through during onboarding's hold-the-map lesson.
+        public bool TutorialMapHold;
+        private bool _mapDemo;
+
+        public readonly ModuleMode[] ModuleModes =
+        {
+            ModuleMode.Auto, ModuleMode.Auto, ModuleMode.Auto, ModuleMode.Auto, ModuleMode.Auto,
+            ModuleMode.Auto, ModuleMode.Auto, ModuleMode.Always, ModuleMode.Always
+        };
+
+        private readonly DateTime[] _modulePreview = new DateTime[9];
+        private const double ModulePreviewSeconds = 2.0;
+
+        public ModuleMode ModeOf(ModuleId id) => ModuleModes[(int)id];
+
+        /// <summary>False only when the module is switched off entirely.</summary>
+        public bool IsModuleOn(ModuleId id) => ModuleModes[(int)id] != ModuleMode.Off;
 
         // Set in a binding's high bits to mean "Shift also required".
         public const int ShiftFlag = 0x10000;
@@ -149,6 +167,8 @@ namespace PhasOverlay
         public int KeyEvidence = 0x4F;    // O
         public int KeyClear = 0x30;       // 0
         public int KeyToggleEv = 0xC0;    // ` (Tilde/Backtick key)
+        public int KeyMap = 0x4D;         // M
+        public int KeyMapHold = 0x4D;     // M, held
 
         public int KeyEv1 = 0x70 | ShiftFlag;  // Shift + F1
         public int KeyEv2 = 0x71 | ShiftFlag;  // Shift + F2
@@ -202,6 +222,8 @@ namespace PhasOverlay
         // config written on a two-monitor setup still works after one is unplugged.
         public int DisplayIndex = DisplayService.PrimaryIndex();
         private EvidenceWindow _evidenceWin = null;
+        private MapWindow _mapWin = null;
+        private MapOverlayWindow? _mapOverlay;
 
         // Parsed key-by-key so one malformed value can't abort the whole load. WriteAllLines isn't
         // atomic, so a kill mid-save can leave a half-written config.
@@ -230,6 +252,32 @@ namespace PhasOverlay
                 _brushCache[hex] = brush;
             }
             return brush;
+        }
+
+        // Below this the evidence panel's cards and dim text lose their backing and read as broken.
+        private const double MinBgOpacity = 0.3;
+        private const double DefaultBgOpacity = 0.8;
+
+        private readonly SolidColorBrush _ghostCardBrush = new(Color.FromRgb(0x1C, 0x1C, 0x1F));
+        private readonly SolidColorBrush _ghostTagBrush = new(Color.FromRgb(0x2A, 0x2A, 0x2E));
+        private double _bgLevel = DefaultBgOpacity;
+
+        /// <summary>
+        /// The opacity setting as the user sees it, 0 to 1. At or above the default it is the real
+        /// opacity; below it the range 0 to the default is squeezed into the floor to the default.
+        /// </summary>
+        public double BgOpacity
+        {
+            get => _bgLevel;
+            set
+            {
+                _bgLevel = Math.Clamp(value, 0.0, 1.0);
+                double real = _bgLevel >= DefaultBgOpacity
+                    ? _bgLevel
+                    : MinBgOpacity + _bgLevel * (DefaultBgOpacity - MinBgOpacity) / DefaultBgOpacity;
+                BgBrush.Opacity = real;
+                _ghostCardBrush.Opacity = _ghostTagBrush.Opacity = Math.Min(1.0, real / DefaultBgOpacity);
+            }
         }
 
         private static readonly IEasingFunction EaseOutQuart = FreezeEase(EasingMode.EaseOut);
@@ -264,6 +312,8 @@ namespace PhasOverlay
 
             ((App)Application.Current).InitializeWeeklyRefresh(this);
             _ = CheckForAppUpdateAsync();
+
+            _ = MapDataUpdater.CheckAsync();
         }
 
         /// <summary>Shows the update prompt if a newer release is published. Notify-only.</summary>
@@ -570,6 +620,8 @@ namespace PhasOverlay
             KeyEvidence = 0x4F;
             KeyClear = 0x30;
             KeyToggleEv = 0xC0;
+            KeyMap = 0x4D;
+            KeyMapHold = 0x4D;
 
             KeyEv1 = 0x70 | ShiftFlag;
             KeyEv2 = 0x71 | ShiftFlag;
@@ -594,6 +646,8 @@ namespace PhasOverlay
             else if (target == "Evidence") { KeyEvidence = code; _kEvidenceLast = true; }
             else if (target == "Clear") { KeyClear = code; _kClearLast = true; }
             else if (target == "ToggleEv") { KeyToggleEv = code; _kToggleEvLast = true; }
+            else if (target == "Map") { KeyMap = code; _kMapLast = true; }
+            else if (target == "MapHold") { KeyMapHold = code & 0xFFFF; _kMapHoldLast = true; _mapHoldArmed = false; }
             else if (target == "Ev1") { KeyEv1 = code; _kEv1Last = true; }
             else if (target == "Ev2") { KeyEv2 = code; _kEv2Last = true; }
             else if (target == "Ev3") { KeyEv3 = code; _kEv3Last = true; }
@@ -603,10 +657,51 @@ namespace PhasOverlay
             else if (target == "Ev7") { KeyEv7 = code; _kEv7Last = true; }
         }
 
-        public void ApplyModuleVisibility(bool[] states)
+        /// <summary><paramref name="changed"/>, if put on Auto, flashes up alone as feedback.</summary>
+        public void ApplyModuleModes(ModuleMode[] modes, ModuleId? changed = null)
         {
-            ModStates = states;
+            for (int i = 0; i < ModuleModes.Length && i < modes.Length; i++) ModuleModes[i] = modes[i];
+
+            if (changed is ModuleId id && ModuleModes[(int)id] == ModuleMode.Auto)
+                _modulePreview[(int)id] = DateTime.Now;
+
             RefreshCompactModeVisuals(true);
+        }
+
+        /// <summary>Puts every module on one mode, within what each module offers.</summary>
+        public void ApplyModulePreset(ModuleMode mode)
+        {
+            for (int i = 0; i < ModuleModes.Length; i++) ModuleModes[i] = mode;
+            NormaliseModuleModes();
+            RefreshCompactModeVisuals(true);
+        }
+
+        /// <summary>The panels have no Auto and the modifiers no Off, so those modes never stick.</summary>
+        private void NormaliseModuleModes()
+        {
+            if (ModuleModes[(int)ModuleId.Evidence] == ModuleMode.Auto) ModuleModes[(int)ModuleId.Evidence] = ModuleMode.Always;
+            if (ModuleModes[(int)ModuleId.Ghosts] == ModuleMode.Auto) ModuleModes[(int)ModuleId.Ghosts] = ModuleMode.Always;
+            if (ModuleModes[(int)ModuleId.BloodMoon] == ModuleMode.Off) ModuleModes[(int)ModuleId.BloodMoon] = ModuleMode.Auto;
+            if (ModuleModes[(int)ModuleId.Cursed] == ModuleMode.Off) ModuleModes[(int)ModuleId.Cursed] = ModuleMode.Auto;
+        }
+
+        private bool ModulePreviewActive(ModuleId id)
+            => _modulePreview[(int)id] != DateTime.MinValue
+               && (DateTime.Now - _modulePreview[(int)id]).TotalSeconds < ModulePreviewSeconds;
+
+        /// <summary>Clears any lapsed per-module preview. True when one just ended.</summary>
+        private bool ExpireModulePreviews()
+        {
+            bool ended = false;
+            for (int i = 0; i < _modulePreview.Length; i++)
+            {
+                if (_modulePreview[i] == DateTime.MinValue) continue;
+                if ((DateTime.Now - _modulePreview[i]).TotalSeconds < ModulePreviewSeconds) continue;
+
+                _modulePreview[i] = DateTime.MinValue;
+                ended = true;
+            }
+            return ended;
         }
 
         public bool HasAnyEvidenceSet()
@@ -749,7 +844,7 @@ namespace PhasOverlay
 
                 Border ghostCard = new Border
                 {
-                    Background = GetBrush("#FF1C1C1F"),
+                    Background = _ghostCardBrush,
                     BorderBrush = GetBrush(isSpeedActive && ghost.IsSpeedHighlighted ? "#FFB455FF" : "#FF2A2A2E"),
                     BorderThickness = new Thickness(1),
                     CornerRadius = new CornerRadius(6),
@@ -814,12 +909,12 @@ namespace PhasOverlay
             {
                 // Mirrors the tracker card tints. Neutral text stays dimmer here to suit the
                 // narrower panel.
-                string bg = ev.State == 1 ? "#33B455FF" : ev.State == 2 ? "#33FF5555" : "#FF2A2A2E";
+                string? bg = ev.State == 1 ? "#33B455FF" : ev.State == 2 ? "#33FF5555" : null;
                 string fg = ev.State == 1 ? "#FFB455FF" : ev.State == 2 ? "#FFFF5555" : "#FFAAAAAA";
 
                 Border tag = new Border
                 {
-                    Background = GetBrush(bg),
+                    Background = bg is null ? _ghostTagBrush : GetBrush(bg),
                     CornerRadius = new CornerRadius(3),
                     Padding = new Thickness(4, 1, 4, 1),
                     Margin = new Thickness(0, 0, 3, 3),
@@ -838,18 +933,26 @@ namespace PhasOverlay
             return row;
         }
 
+        /// <summary>Whether a module is on screen. A preview shows Auto modules but never an Off one.</summary>
+        private bool ShowModule(ModuleId id, bool live, bool isPreviewing) => ModeOf(id) switch
+        {
+            ModuleMode.Off => false,
+            ModuleMode.Always => true,
+            _ => live || isPreviewing || ModulePreviewActive(id)
+        };
+
         public void RefreshCompactModeVisuals(bool instant = false, bool noDelay = false)
         {
             bool isPreviewing = LastSettingsPreviewTime != DateTime.MinValue && (DateTime.Now - LastSettingsPreviewTime).TotalSeconds < 2.0;
 
-            bool smudge = (IsCompactMode && !isPreviewing) ? _isSmudgeActive && ModStates[0] : ModStates[0];
-            bool cooldown = (IsCompactMode && !isPreviewing) ? _isCooldownActive && ModStates[1] : ModStates[1];
-            bool hunt = (IsCompactMode && !isPreviewing) ? _isHuntActive && ModStates[2] : ModStates[2];
-            bool obambo = (IsCompactMode && !isPreviewing) ? _isObamboActive && ModStates[3] : ModStates[3];
-            bool speed = (IsCompactMode && !isPreviewing) ? _recentTaps.Count > 1 && ModStates[4] : ModStates[4];
+            bool smudge = ShowModule(ModuleId.Smudge, _isSmudgeActive, isPreviewing);
+            bool cooldown = ShowModule(ModuleId.Cooldown, _isCooldownActive, isPreviewing);
+            bool hunt = ShowModule(ModuleId.Hunt, _isHuntActive, isPreviewing);
+            bool obambo = ShowModule(ModuleId.Obambo, _isObamboActive, isPreviewing);
+            bool speed = ShowModule(ModuleId.SpeedTap, _recentTaps.Count > 1, isPreviewing);
 
-            bool evidence = (IsCompactMode && !isPreviewing) ? (HasAnyEvidenceSet() || AlwaysShowEvidence) && ModStates[7] : ModStates[7];
-            bool ghostsList = (IsCompactMode && !isPreviewing) ? OverlayGhostList.Children.Count > 0 && ModStates[8] : ModStates[8];
+            bool evidence = ShowModule(ModuleId.Evidence, HasAnyEvidenceSet(), isPreviewing);
+            bool ghostsList = ShowModule(ModuleId.Ghosts, OverlayGhostList.Children.Count > 0, isPreviewing);
 
             if (IsOverlayEvHidden && !isPreviewing)
             {
@@ -866,8 +969,8 @@ namespace PhasOverlay
 
             bool timersActive = smudge || cooldown || hunt || obambo || speed;
 
-            bool showBloodMoonIcon = ModStates[5] && (!IsCompactMode || IsBloodMoonActive || isPreviewing);
-            bool showCursedIcon = ModStates[6] && (!IsCompactMode || IsCursedHunt || isPreviewing);
+            bool showBloodMoonIcon = ShowModule(ModuleId.BloodMoon, IsBloodMoonActive, isPreviewing);
+            bool showCursedIcon = ShowModule(ModuleId.Cursed, IsCursedHunt, isPreviewing);
             bool rightActive = showBloodMoonIcon || showCursedIcon;
 
             bool anyActive = timersActive || evidence || ghostsList || rightActive;
@@ -1091,7 +1194,7 @@ namespace PhasOverlay
 
             mciSendString($"open \"{filePath}\" type mpegvideo alias {alias}", null, 0, IntPtr.Zero);
 
-            double baseVolume = fileNameKey == "alert" ? 0.75 : 1.0;
+            double baseVolume = fileNameKey is "alert" or "alert_close" ? 0.75 : 1.0;
             int vol = (int)(baseVolume * MasterVolume * 1000);
             mciSendString($"setaudio {alias} volume to {vol}", null, 0, IntPtr.Zero);
 
@@ -1127,7 +1230,7 @@ namespace PhasOverlay
                         _lastEvSoundTime = DateTime.Now;
                     }
 
-                    if (!ModStates[7] && notificationText.Length > 0)
+                    if (!IsModuleOn(ModuleId.Evidence) && notificationText.Length > 0)
                     {
                         ShowNotification(notificationText);
                     }
@@ -1138,6 +1241,48 @@ namespace PhasOverlay
         public void ShowNotification(string message)
         {
             _notifWin?.ShowMessage(message);
+        }
+
+        /// <summary>
+        /// Reads ModuleModes, or migrates CompactMode, ModulesActive and AlwaysShowEvidence from an
+        /// older config.
+        /// </summary>
+        private void LoadModuleModes(Dictionary<string, string> dict)
+        {
+            if (dict.TryGetValue("ModuleModes", out string? modes))
+            {
+                for (int i = 0; i < ModuleModes.Length; i++)
+                {
+                    ModuleModes[i] = i < modes.Length && modes[i] is '0' or '1' or '2'
+                        ? (ModuleMode)(modes[i] - '0')
+                        : ModuleMode.Auto;
+                }
+                NormaliseModuleModes();
+                return;
+            }
+
+            bool compact = !dict.TryGetValue("CompactMode", out string? compactStr) || compactStr == "1";
+            string active = dict.TryGetValue("ModulesActive", out string? activeStr) ? activeStr : "";
+
+            for (int i = 0; i < ModuleModes.Length; i++)
+            {
+                bool on = i >= active.Length || active[i] == '1';
+                ModuleModes[i] = on ? (compact ? ModuleMode.Auto : ModuleMode.Always) : ModuleMode.Off;
+            }
+
+            if (dict.TryGetValue("AlwaysShowEvidence", out string? alwaysEv) && alwaysEv == "1"
+                && ModuleModes[(int)ModuleId.Evidence] != ModuleMode.Off)
+                ModuleModes[(int)ModuleId.Evidence] = ModuleMode.Always;
+
+            NormaliseModuleModes();
+        }
+
+        /// <summary>The modes as settings.txt stores them, one digit per module.</summary>
+        public string ModuleModesString()
+        {
+            var sb = new System.Text.StringBuilder(ModuleModes.Length);
+            foreach (var m in ModuleModes) sb.Append((char)('0' + (int)m));
+            return sb.ToString();
         }
 
         private void LoadSettings()
@@ -1184,7 +1329,7 @@ namespace PhasOverlay
                         if (!dict.ContainsKey("SettingsVersion") && DifficultyIndex == DiffWeekly)
                             DifficultyIndex = DiffCustom;
 
-                        BgBrush.Opacity = ReadDouble(dict, "Opacity", 0.8);
+                        BgOpacity = ReadDouble(dict, "Opacity", DefaultBgOpacity);
                         double scale = ReadDouble(dict, "Scale", 1.0);
                         OverlayScale.ScaleX = scale;
                         OverlayScale.ScaleY = scale;
@@ -1199,18 +1344,7 @@ namespace PhasOverlay
                         OverlayPosition = ReadInt(dict, "Position", OverlayPosition);
                         DisplayIndex = ReadInt(dict, "Display", DisplayIndex);
 
-                        if (dict.ContainsKey("ModulesActive"))
-                        {
-                            string statesStr = dict["ModulesActive"];
-                            for (int i = 0; i < 9; i++)
-                            {
-                                if (i < statesStr.Length) ModStates[i] = (statesStr[i] == '1');
-                                else ModStates[i] = true;
-                            }
-                        }
-
-                        if (dict.ContainsKey("CompactMode")) IsCompactMode = dict["CompactMode"] == "1";
-                        if (dict.ContainsKey("AlwaysShowEvidence")) AlwaysShowEvidence = dict["AlwaysShowEvidence"] == "1";
+                        LoadModuleModes(dict);
                         MasterVolume = ReadDouble(dict, "Volume", MasterVolume);
                         EvidenceLimit = ReadInt(dict, "EvidenceLimit", EvidenceLimit);
                         KeySmudge = ReadInt(dict, "KeySmudge", KeySmudge);
@@ -1226,6 +1360,8 @@ namespace PhasOverlay
                         KeyEvidence = ReadInt(dict, "KeyEvidence", KeyEvidence);
                         KeyClear = ReadInt(dict, "KeyClear", KeyClear);
                         KeyToggleEv = ReadInt(dict, "KeyToggleEv", KeyToggleEv);
+                        KeyMap = ReadInt(dict, "KeyMap", KeyMap);
+                        KeyMapHold = ReadInt(dict, "KeyMapHold", KeyMapHold) & 0xFFFF;
 
                         KeyEv1 = ReadInt(dict, "KeyEv1", KeyEv1);
                         KeyEv2 = ReadInt(dict, "KeyEv2", KeyEv2);
@@ -1271,7 +1407,7 @@ namespace PhasOverlay
                 welcome.Show();
             }
 
-            ApplyModuleVisibility(ModStates);
+            RefreshCompactModeVisuals(true);
         }
 
         private void OpenSettings(bool isFirstRun)
@@ -1338,6 +1474,7 @@ namespace PhasOverlay
             bool kEv = KeyHeld(KeyEvidence, shiftDown);
             bool kClr = KeyHeld(KeyClear, shiftDown);
             bool kToggleEv = KeyHeld(KeyToggleEv, shiftDown);
+            bool kMap = KeyHeld(KeyMap, shiftDown);
 
             bool kEv1 = KeyHeld(KeyEv1, shiftDown);
             bool kEv2 = KeyHeld(KeyEv2, shiftDown);
@@ -1365,17 +1502,18 @@ namespace PhasOverlay
 
             if (!IsTutorialActive && isAppFocused)
             {
-                if (k1 && !_k1Last && ModStates[0]) ToggleSmudge();
-                if (k2 && !_k2Last && ModStates[1]) ToggleCooldown();
-                if (k3 && !_k3Last && ModStates[2]) ToggleHunt();
-                if (k4 && !_k4Last && ModStates[3]) ToggleObambo();
-                if (k5 && !_k5Last && ModStates[4]) ResetSpeedTap(false);
-                if (space && !_spaceLast && ModStates[4]) RecordSpeedTap();
+                if (k1 && !_k1Last && IsModuleOn(ModuleId.Smudge)) ToggleSmudge();
+                if (k2 && !_k2Last && IsModuleOn(ModuleId.Cooldown)) ToggleCooldown();
+                if (k3 && !_k3Last && IsModuleOn(ModuleId.Hunt)) ToggleHunt();
+                if (k4 && !_k4Last && IsModuleOn(ModuleId.Obambo)) ToggleObambo();
+                if (k5 && !_k5Last && IsModuleOn(ModuleId.SpeedTap)) ResetSpeedTap(false);
+                if (space && !_spaceLast && IsModuleOn(ModuleId.SpeedTap)) RecordSpeedTap();
 
                 if (k6 && !_k6Last) ToggleBloodMoon();
                 if (k7 && !_k7Last) ToggleCursedHunt();
 
                 if (kEv && !_kEvidenceLast) ToggleEvidenceWindow();
+                if (kMap && !_kMapLast && (KeyMap & 0xFFFF) != (KeyMapHold & 0xFFFF)) ToggleMapWindow();
                 if (kClr && !_kClearLast) ClearAll();
 
                 if (kToggleEv && !_kToggleEvLast)
@@ -1394,18 +1532,23 @@ namespace PhasOverlay
                 if (kEv6 && !_kEv6Last) HandleEvidenceShortcut(6);
                 if (kEv7 && !_kEv7Last) HandleEvidenceShortcut(7);
 
-                if (pageUp && !typing) { BgBrush.Opacity = Math.Min(1.0, BgBrush.Opacity + 0.05); }
-                if (pageDown && !typing) { BgBrush.Opacity = Math.Max(0.0, BgBrush.Opacity - 0.05); }
+                if (pageUp && !typing) { BgOpacity += 0.05; }
+                if (pageDown && !typing) { BgOpacity -= 0.05; }
             }
+
+            // Outside the focus gate so letting go always hides the map, even after alt-tabbing mid-hold.
+            bool kMapHold = (GetAsyncKeyState(KeyMapHold & 0xFFFF) & 0x8000) != 0;
+            UpdateMapHold(kMapHold, kMap, (!IsTutorialActive || TutorialMapHold) && isAppFocused);
+            _kMapHoldLast = kMapHold;
 
             _k1Last = k1; _k2Last = k2; _k3Last = k3; _k4Last = k4;
             _k5Last = k5; _k6Last = k6; _k7Last = k7; _spaceLast = space; _homeLast = home;
-            _kEvidenceLast = kEv; _kClearLast = kClr; _kToggleEvLast = kToggleEv;
+            _kEvidenceLast = kEv; _kClearLast = kClr; _kToggleEvLast = kToggleEv; _kMapLast = kMap;
 
             _kEv1Last = kEv1; _kEv2Last = kEv2; _kEv3Last = kEv3;
             _kEv4Last = kEv4; _kEv5Last = kEv5; _kEv6Last = kEv6; _kEv7Last = kEv7;
 
-            if (IsCompactMode && LastSettingsPreviewTime != DateTime.MinValue)
+            if (LastSettingsPreviewTime != DateTime.MinValue)
             {
                 if ((DateTime.Now - LastSettingsPreviewTime).TotalSeconds > 2.0)
                 {
@@ -1413,6 +1556,8 @@ namespace PhasOverlay
                     RefreshCompactModeVisuals();
                 }
             }
+
+            if (ExpireModulePreviews()) RefreshCompactModeVisuals();
 
             // Keep the shared evidence/ghosts headers in step with their content columns so
             // the single underline spans exactly the columns that are currently visible.
@@ -1448,6 +1593,108 @@ namespace PhasOverlay
                 {
                     _evidenceWin.Show();
                 }
+            }
+        }
+
+        // On a shared key a short press toggles the Maps window on release and a long one shows the map.
+        // The hold key ignores Shift so the map still opens while running.
+        private void UpdateMapHold(bool holdDown, bool tapDown, bool canStart)
+        {
+            bool shared = (KeyMap & 0xFFFF) == (KeyMapHold & 0xFFFF);
+
+            if (holdDown && !_kMapHoldLast && canStart)
+            {
+                _mapHoldArmed = true;
+                _mapHoldTap = shared && tapDown && !IsTutorialActive;
+                _mapHoldStart = DateTime.UtcNow;
+            }
+
+            if (holdDown && _mapHoldArmed && !_mapHoldShown
+                && (!shared || (DateTime.UtcNow - _mapHoldStart).TotalMilliseconds >= MapTapMaxMs))
+            {
+                _mapHoldShown = true;
+                _mapOverlay ??= new MapOverlayWindow();
+                if (!_mapOverlay.ShowSelection(DisplayIndex))
+                    ShowNotification("No map selected. Pick one in the Maps window.");
+
+                // An arrow already down when the map appears is not a press.
+                _kLeftLast = _kRightLast = _kUpLast = _kDownLast = true;
+            }
+
+            if (_mapHoldShown && _mapOverlay != null && _mapOverlay.IsVisible)
+            {
+                bool left = (GetAsyncKeyState(0x25) & 0x8000) != 0;
+                bool up = (GetAsyncKeyState(0x26) & 0x8000) != 0;
+                bool right = (GetAsyncKeyState(0x27) & 0x8000) != 0;
+                bool down = (GetAsyncKeyState(0x28) & 0x8000) != 0;
+
+                if (left && !_kLeftLast) _mapOverlay.CycleFloor(-1);
+                if (right && !_kRightLast) _mapOverlay.CycleFloor(1);
+                if (up && !_kUpLast) _mapOverlay.CycleVersion(-1);
+                if (down && !_kDownLast) _mapOverlay.CycleVersion(1);
+
+                _kLeftLast = left; _kRightLast = right; _kUpLast = up; _kDownLast = down;
+
+                if (GetCursorPos(out NativePoint mapCursor)) _mapOverlay.UpdateHover(mapCursor.X, mapCursor.Y);
+            }
+
+            if (!holdDown && _kMapHoldLast)
+            {
+                if (_mapHoldShown) _mapOverlay?.HideOverlay();
+                else if (_mapHoldArmed && _mapHoldTap) ToggleMapWindow();
+
+                _mapHoldArmed = _mapHoldShown = _mapHoldTap = false;
+            }
+        }
+
+        /// <summary>True while the held map is actually on screen.</summary>
+        public bool IsMapHeld => _mapHoldShown && _mapOverlay != null && _mapOverlay.IsVisible;
+
+        private MapWindow EnsureMapWindow()
+        {
+            if (_mapWin == null)
+            {
+                _mapWin = new MapWindow(this);
+                _mapWin.Closed += (s, e) => _mapWin = null;
+            }
+            return _mapWin;
+        }
+
+        public void StartMapTutorial(Action<bool> finished)
+        {
+            _mapDemo = true;
+            var win = EnsureMapWindow();
+            win.StartTutorial(finished);
+            win.Show();
+            win.Activate();
+        }
+
+        /// <summary>Puts away everything onboarding's maps lesson left behind, the map it picked included.</summary>
+        public void EndMapDemo()
+        {
+            if (!_mapDemo) return;
+            _mapDemo = false;
+
+            _mapOverlay?.HideOverlay();
+            _mapWin?.Close();
+            MapSelection.Clear();
+        }
+
+        public void ToggleMapWindow()
+        {
+            if (_mapWin == null)
+            {
+                EnsureMapWindow().Show();
+            }
+            else if (_mapWin.Visibility == Visibility.Visible)
+            {
+                _mapWin.Hide();
+            }
+            else
+            {
+                _mapWin.SyncSelection();
+                _mapWin.Show();
+                _mapWin.Activate();
             }
         }
 
@@ -1613,7 +1860,7 @@ namespace PhasOverlay
                 SmudgeText.Text = "0:00";
                 SmudgeTitle.Foreground = GetBrush("#FFDDDDDD");
                 ResetPulse(SmudgeText);
-                PlayAudio("alert");
+                PlayAudio("alert_close");
                 RefreshCompactModeVisuals(false, true);
             }
             else
@@ -1638,7 +1885,7 @@ namespace PhasOverlay
                 CooldownText.Text = "0:00";
                 CooldownTitle.Foreground = GetBrush("#FFDDDDDD");
                 ResetPulse(CooldownText);
-                PlayAudio("alert");
+                PlayAudio("alert_close");
                 RefreshCompactModeVisuals(false, true);
             }
             else
@@ -1662,7 +1909,7 @@ namespace PhasOverlay
                 HuntText.Text = "0:00";
                 HuntTitle.Foreground = GetBrush("#FFDDDDDD");
                 ResetPulse(HuntText);
-                PlayAudio("alert");
+                PlayAudio("alert_close");
                 RefreshCompactModeVisuals(false, true);
             }
             else
@@ -1727,7 +1974,7 @@ namespace PhasOverlay
                 if (remaining <= 120 && !_smudgeDemon)
                 {
                     _smudgeDemon = true;
-                    PlayAudio("alert");
+                    PlayAudio("alert_close");
                     ResetPulse(SmudgeText);
                 }
 
@@ -1741,7 +1988,7 @@ namespace PhasOverlay
                 if (remaining <= 90 && !_smudgeStandard)
                 {
                     _smudgeStandard = true;
-                    PlayAudio("alert");
+                    PlayAudio("alert_close");
                     ResetPulse(SmudgeText);
                 }
 
@@ -1755,7 +2002,7 @@ namespace PhasOverlay
                 if (remaining <= 0 && !_smudgeSpirit)
                 {
                     _smudgeSpirit = true;
-                    PlayAudio("alert");
+                    PlayAudio("alert_close");
                     _isSmudgeActive = false;
                     SmudgeTitle.Foreground = GetBrush("#FFDDDDDD");
                     RefreshCompactModeVisuals();
@@ -1781,7 +2028,7 @@ namespace PhasOverlay
                 if (remaining <= 5 && !_cdDemonAlert)
                 {
                     _cdDemonAlert = true;
-                    PlayAudio("alert");
+                    PlayAudio("alert_close");
                     ResetPulse(CooldownText);
                 }
 
@@ -1796,7 +2043,7 @@ namespace PhasOverlay
                 if (remaining <= 0)
                 {
                     _isCooldownActive = false;
-                    PlayAudio("alert");
+                    PlayAudio("alert_close");
                     CooldownTitle.Foreground = GetBrush("#FFDDDDDD");
                     CooldownText.Text = "0:00";
                     RefreshCompactModeVisuals();
@@ -1821,7 +2068,7 @@ namespace PhasOverlay
                 if (remaining <= 0)
                 {
                     _isHuntActive = false;
-                    PlayAudio("alert");
+                    PlayAudio("alert_close");
                     HuntTitle.Foreground = GetBrush("#FFDDDDDD");
                     HuntText.Text = "0:00";
                     RefreshCompactModeVisuals();

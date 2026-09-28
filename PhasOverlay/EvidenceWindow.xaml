@@ -477,10 +477,6 @@
 
                 <Border Grid.Column="0" BorderBrush="#FF252528" BorderThickness="0,0,1,0" Padding="20,10,20,20">
                     <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="*"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
 
                         <StackPanel Grid.Row="0">
                             <CheckBox x:Name="ChkEmf" Content="EMF Level 5" IsChecked="{x:Null}" Style="{StaticResource ModernSwitch}" PreviewMouseLeftButtonDown="Evidence_PreviewMouseLeftButtonDown"/>
@@ -568,10 +564,6 @@
 
                             <Button x:Name="BtnResetTracker" Content="RESET TRACKER" Style="{StaticResource ModernButton}" Height="38" Margin="0,25,0,0" Click="ResetTracker_Click"/>
                         </StackPanel>
-
-                        <TextBlock Grid.Row="1" Foreground="#FF55555A" FontSize="12" TextWrapping="Wrap" HorizontalAlignment="Left" VerticalAlignment="Bottom">
-                            Credit to <Hyperlink NavigateUri="https://tybayn.github.io/phasmo-cheat-sheet/" RequestNavigate="Hyperlink_RequestNavigate" Foreground="#FFB455FF">tybayn.github.io/phasmo-cheat-sheet/</Hyperlink> for some of the ghost data.
-                        </TextBlock>
                     </Grid>
                 </Border>
 

@@ -39,69 +39,47 @@
             <Setter Property="Margin" Value="0,0,0,6"/>
         </Style>
 
-        <Style x:Key="ModernSwitch" TargetType="CheckBox">
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontSize" Value="13"/>
+        <Style x:Key="ModeRowName" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#FFDDDDDD"/>
+            <Setter Property="FontSize" Value="12.5"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Margin" Value="0,0,0,20"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="CheckBox">
-                        <Grid Background="Transparent">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="40"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Border x:Name="BgBorder" Width="36" Height="20" CornerRadius="10" Background="#FF2A2A2E" HorizontalAlignment="Left"/>
-                            <Ellipse x:Name="Thumb" Width="14" Height="14" Fill="#FFAAAAAA" HorizontalAlignment="Left" Margin="3,0,0,0"/>
-                            <ContentPresenter Grid.Column="1" VerticalAlignment="Center" Margin="5,0,0,0"/>
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="BgBorder" Property="Background" Value="#FF3F3F46"/>
-                            </Trigger>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="BgBorder" Property="Background" Value="#FFB455FF"/>
-                                <Setter TargetName="Thumb" Property="Fill" Value="#FF151515"/>
-                                <Setter TargetName="Thumb" Property="Margin" Value="19,0,0,0"/>
-                            </Trigger>
-                            <Trigger Property="IsChecked" Value="False">
-                                <Setter TargetName="BgBorder" Property="Background" Value="#FF2A2A2E"/>
-                                <Setter TargetName="Thumb" Property="Fill" Value="#FFAAAAAA"/>
-                                <Setter TargetName="Thumb" Property="Margin" Value="3,0,0,0"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.4"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
 
-        <Style x:Key="SegmentedPill" TargetType="ToggleButton">
-            <Setter Property="Foreground" Value="#FFAAAAAA"/>
-            <Setter Property="Background" Value="#FF1C1C1F"/>
-            <Setter Property="FontSize" Value="12"/>
+        <Style x:Key="ModeGroupLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#FF6E6E76"/>
+            <Setter Property="FontSize" Value="10"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Height" Value="30"/>
-            <Setter Property="Padding" Value="12,0"/>
-            <Setter Property="Margin" Value="0,0,6,8"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="ModeTrack" TargetType="Border">
+            <Setter Property="Background" Value="#FF1C1C1F"/>
+            <Setter Property="CornerRadius" Value="13"/>
+            <Setter Property="Padding" Value="3"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="ModeSeg" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="#FF8A8A92"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template">
                 <Setter.Value>
-                    <ControlTemplate TargetType="ToggleButton">
-                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="15">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="seg" CornerRadius="11" Background="Transparent" Padding="11,4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#FF2D2D30"/>
+                                <Setter TargetName="seg" Property="Background" Value="#FF2D2D30"/>
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#FFB455FF"/>
-                                <Setter Property="Foreground" Value="White"/>
+                                <Setter TargetName="seg" Property="Background" Value="#FFB455FF"/>
+                                <Setter Property="Foreground" Value="#FF151515"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -164,6 +142,7 @@
         </Style>
 
         <Style x:Key="ModernButton" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Background" Value="#FF2D2D30"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="14"/>
@@ -214,6 +193,10 @@
                     <ColumnDefinition Width="35"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
                 <StackPanel Grid.Column="0">
                     <Grid Margin="0,0,0,20">
@@ -289,19 +272,6 @@
                             <Button Grid.Column="2" Content="TEST" Style="{StaticResource ModernButton}" Width="50" Height="24" FontSize="11" Click="TestAudio_Click"/>
                         </Grid>
                     </Border>
-
-                    <TextBlock Text="ACTIVE UI MODULES" Style="{StaticResource SettingLabel}"/>
-                    <WrapPanel Margin="0,0,0,0">
-                        <ToggleButton x:Name="TglSmudge" Content="Smudge" Style="{StaticResource SegmentedPill}" Click="Module_Click"/>
-                        <ToggleButton x:Name="TglCooldown" Content="Cooldown" Style="{StaticResource SegmentedPill}" Click="ModuleToggle_Click"/>
-                        <ToggleButton x:Name="TglHunt" Content="Hunt" Style="{StaticResource SegmentedPill}" Click="Module_Click"/>
-                        <ToggleButton x:Name="TglObambo" Content="Obambo" Style="{StaticResource SegmentedPill}" Click="Module_Click"/>
-                        <ToggleButton x:Name="TglSpeed" Content="Speed Tap" Style="{StaticResource SegmentedPill}" Click="Module_Click"/>
-                        <ToggleButton x:Name="TglBloodMoon" Content="Blood Moon" Style="{StaticResource SegmentedPill}" Click="Module_Click"/>
-                        <ToggleButton x:Name="TglCursed" Content="Cursed" Style="{StaticResource SegmentedPill}" Click="Module_Click"/>
-                        <ToggleButton x:Name="TglEvidence" Content="Evidence" Style="{StaticResource SegmentedPill}" Click="Module_Click"/>
-                        <ToggleButton x:Name="TglGhosts" Content="Possible Ghosts" Style="{StaticResource SegmentedPill}" Click="Module_Click"/>
-                    </WrapPanel>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2">
@@ -315,9 +285,6 @@
 
                     <TextBlock x:Name="DisplayLabel" Text="DISPLAY SETTINGS" Style="{StaticResource SettingLabel}"/>
                     <ComboBox x:Name="CmbDisplay" FontSize="14" Padding="8,6" Margin="0,0,0,16" SelectionChanged="Display_Changed"/>
-
-                    <CheckBox x:Name="ChkPersistentOverlay" Content="Persistent Overlay (Always Show)" Margin="0,0,0,10" Style="{StaticResource ModernSwitch}" Click="PersistentMode_Click"/>
-                    <CheckBox x:Name="ChkAlwaysShowEvidence" Content="Always Show Evidence" Style="{StaticResource ModernSwitch}" Click="AlwaysShowEvidence_Click"/>
 
                     <Grid>
                         <TextBlock Text="OVERLAY SIZE" Style="{StaticResource SettingLabel}"/>
@@ -338,7 +305,7 @@
                         <TextBlock Text="BACKGROUND OPACITY" Style="{StaticResource SettingLabel}"/>
                         <TextBlock x:Name="OpacityValueLabel" Style="{StaticResource SettingLabel}" HorizontalAlignment="Right"/>
                     </Grid>
-                    <Grid Margin="0,0,0,30">
+                    <Grid Margin="0,0,0,20">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
@@ -348,9 +315,16 @@
                         <Slider x:Name="OpacitySlider" Grid.Column="1" Minimum="0" Maximum="1" Value="0.8" TickFrequency="0.05" IsSnapToTickEnabled="True" IsMoveToPointEnabled="True" ValueChanged="PreviewUpdate_Trigger"/>
                         <TextBlock Text="Solid" Grid.Column="2" Foreground="#888888" VerticalAlignment="Center" Margin="10,0,0,0"/>
                     </Grid>
+                </StackPanel>
 
+                <StackPanel Grid.Row="1" Grid.Column="0">
                     <TextBlock Text="HOTKEYS" Style="{StaticResource SettingLabel}"/>
                     <Button Content="CONFIGURE HOTKEYS" Style="{StaticResource ModernButton}" Height="38" Margin="0,0,0,20" Click="OpenHotkeys_Click"/>
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Grid.Column="2">
+                    <TextBlock Text="OVERLAY MODULES" Style="{StaticResource SettingLabel}"/>
+                    <Button Content="CONFIGURE MODULES" Style="{StaticResource ModernButton}" Height="38" Margin="0,0,0,20" Click="OpenModules_Click"/>
                 </StackPanel>
 
             </Grid>
@@ -369,8 +343,140 @@
                 </Grid>
             </Border>
 
+            <Border x:Name="ModulesModalOverlay" Grid.RowSpan="3" Background="#D8000000" CornerRadius="8" Visibility="Collapsed" Panel.ZIndex="100" MouseLeftButtonDown="ModulesModalOverlay_MouseLeftButtonDown">
+                <Border Background="#FF1C1C1F" BorderBrush="#FF2A2A2E" BorderThickness="1" CornerRadius="8" Width="520" Padding="30,24,30,26" HorizontalAlignment="Center" VerticalAlignment="Center" MouseLeftButtonDown="ModalContent_MouseLeftButtonDown">
+                    <StackPanel>
+
+                        <Grid Margin="0,0,0,18">
+                            <TextBlock Text="Modules" Foreground="White" FontSize="20" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,42,0">
+                                <Button Content="ALL AUTO" Tag="Auto" Style="{StaticResource ModernButton}"
+                                        Height="24" Width="80" FontSize="10" Margin="0,0,6,0" Click="ModulePreset_Click"/>
+                                <Button Content="ALL ALWAYS" Tag="Always" Style="{StaticResource ModernButton}"
+                                        Height="24" Width="90" FontSize="10" Click="ModulePreset_Click"/>
+                            </StackPanel>
+                            <Button Style="{StaticResource CloseButtonStyle}" Width="30" Height="30" HorizontalAlignment="Right" VerticalAlignment="Center" Click="CloseModules_Click"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="TIMERS" Style="{StaticResource ModeGroupLabel}"/>
+                            <Border Grid.Column="1" Margin="10,0,0,0" Height="1" Background="#FF252528" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <Grid Height="34">
+                            <TextBlock Text="Smudge" Style="{StaticResource ModeRowName}"/>
+                            <Border Style="{StaticResource ModeTrack}">
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton x:Name="RbSmudgeOff" GroupName="ModSmudge" Content="Off" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                    <RadioButton x:Name="RbSmudgeAuto" GroupName="ModSmudge" Content="Auto Hide" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                    <RadioButton x:Name="RbSmudgeAlways" GroupName="ModSmudge" Content="Always Show" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <Grid Height="34">
+                            <TextBlock Text="Cooldown" Style="{StaticResource ModeRowName}"/>
+                            <Border Style="{StaticResource ModeTrack}">
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton x:Name="RbCooldownOff" GroupName="ModCooldown" Content="Off" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                    <RadioButton x:Name="RbCooldownAuto" GroupName="ModCooldown" Content="Auto Hide" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                    <RadioButton x:Name="RbCooldownAlways" GroupName="ModCooldown" Content="Always Show" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <Grid Height="34">
+                            <TextBlock Text="Hunt" Style="{StaticResource ModeRowName}"/>
+                            <Border Style="{StaticResource ModeTrack}">
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton x:Name="RbHuntOff" GroupName="ModHunt" Content="Off" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                    <RadioButton x:Name="RbHuntAuto" GroupName="ModHunt" Content="Auto Hide" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                    <RadioButton x:Name="RbHuntAlways" GroupName="ModHunt" Content="Always Show" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <Grid Height="34">
+                            <TextBlock Text="Obambo" Style="{StaticResource ModeRowName}"/>
+                            <Border Style="{StaticResource ModeTrack}">
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton x:Name="RbObamboOff" GroupName="ModObambo" Content="Off" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                    <RadioButton x:Name="RbObamboAuto" GroupName="ModObambo" Content="Auto Hide" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                    <RadioButton x:Name="RbObamboAlways" GroupName="ModObambo" Content="Always Show" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <Grid Height="34">
+                            <TextBlock Text="Speed Tap" Style="{StaticResource ModeRowName}"/>
+                            <Border Style="{StaticResource ModeTrack}">
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton x:Name="RbSpeedOff" GroupName="ModSpeed" Content="Off" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                    <RadioButton x:Name="RbSpeedAuto" GroupName="ModSpeed" Content="Auto Hide" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                    <RadioButton x:Name="RbSpeedAlways" GroupName="ModSpeed" Content="Always Show" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <Grid Margin="0,10,0,4">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="MODIFIERS" Style="{StaticResource ModeGroupLabel}"/>
+                            <Border Grid.Column="1" Margin="10,0,0,0" Height="1" Background="#FF252528" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <Grid Height="34">
+                            <TextBlock Text="Blood Moon" Style="{StaticResource ModeRowName}"/>
+                            <Border Style="{StaticResource ModeTrack}">
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton x:Name="RbBloodMoonAuto" GroupName="ModBloodMoon" Content="Auto Hide" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                    <RadioButton x:Name="RbBloodMoonAlways" GroupName="ModBloodMoon" Content="Always Show" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <Grid Height="34">
+                            <TextBlock Text="Cursed Hunt" Style="{StaticResource ModeRowName}"/>
+                            <Border Style="{StaticResource ModeTrack}">
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton x:Name="RbCursedAuto" GroupName="ModCursed" Content="Auto Hide" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                    <RadioButton x:Name="RbCursedAlways" GroupName="ModCursed" Content="Always Show" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <Grid Margin="0,10,0,4">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="PANELS" Style="{StaticResource ModeGroupLabel}"/>
+                            <Border Grid.Column="1" Margin="10,0,0,0" Height="1" Background="#FF252528" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <Grid Height="34">
+                            <TextBlock Text="Evidence" Style="{StaticResource ModeRowName}"/>
+                            <Border Style="{StaticResource ModeTrack}">
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton x:Name="RbEvidenceOff" GroupName="ModEvidence" Content="Off" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                    <RadioButton x:Name="RbEvidenceAlways" GroupName="ModEvidence" Content="Always Show" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <Grid Height="34">
+                            <TextBlock Text="Possible Ghosts" Style="{StaticResource ModeRowName}"/>
+                            <Border Style="{StaticResource ModeTrack}">
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton x:Name="RbGhostsOff" GroupName="ModGhosts" Content="Off" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                    <RadioButton x:Name="RbGhostsAlways" GroupName="ModGhosts" Content="Always Show" Style="{StaticResource ModeSeg}" Checked="ModuleMode_Checked"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                    </StackPanel>
+                </Border>
+            </Border>
+
             <Border x:Name="HotkeysModalOverlay" Grid.RowSpan="3" Background="#D8000000" CornerRadius="8" Visibility="Collapsed" Panel.ZIndex="100" MouseLeftButtonDown="HotkeysModalOverlay_MouseLeftButtonDown">
-                <Border Background="#FF1C1C1F" BorderBrush="#FF2A2A2E" BorderThickness="1" CornerRadius="8" Width="550" Padding="30" HorizontalAlignment="Center" VerticalAlignment="Center" MouseLeftButtonDown="HotkeysModalContent_MouseLeftButtonDown">
+                <Border Background="#FF1C1C1F" BorderBrush="#FF2A2A2E" BorderThickness="1" CornerRadius="8" Width="550" Padding="30" HorizontalAlignment="Center" VerticalAlignment="Center" MouseLeftButtonDown="ModalContent_MouseLeftButtonDown">
                     <StackPanel>
 
                         <Grid Margin="0,0,0,20">
@@ -435,11 +541,13 @@
                                     <TextBlock Text="WINDOWS &amp; UI" Style="{StaticResource BindGroupHeader}"/>
                                     <Grid Style="{StaticResource BindRow}">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                                         <Button Grid.Row="0" Grid.Column="0" x:Name="BtnBindSettings" Style="{StaticResource HotkeyButton}" Click="Bind_Click" Tag="Settings"/>
                                         <Button Grid.Row="0" Grid.Column="2" x:Name="BtnBindEvidence" Style="{StaticResource HotkeyButton}" Click="Bind_Click" Tag="Evidence"/>
-                                        <Button Grid.Row="1" Grid.Column="0" x:Name="BtnBindToggleEv" Style="{StaticResource HotkeyButton}" Click="Bind_Click" Tag="ToggleEv"/>
-                                        <Button Grid.Row="1" Grid.Column="2" x:Name="BtnBindClear" Style="{StaticResource HotkeyButton}" Click="Bind_Click" Tag="Clear"/>
+                                        <Button Grid.Row="1" Grid.Column="0" x:Name="BtnBindMap" Style="{StaticResource HotkeyButton}" Click="Bind_Click" Tag="Map"/>
+                                        <Button Grid.Row="1" Grid.Column="2" x:Name="BtnBindToggleEv" Style="{StaticResource HotkeyButton}" Click="Bind_Click" Tag="ToggleEv"/>
+                                        <Button Grid.Row="2" Grid.Column="0" x:Name="BtnBindMapHold" Style="{StaticResource HotkeyButton}" Click="Bind_Click" Tag="MapHold"/>
+                                        <Button Grid.Row="2" Grid.Column="2" x:Name="BtnBindClear" Style="{StaticResource HotkeyButton}" Click="Bind_Click" Tag="Clear"/>
                                     </Grid>
                                 </StackPanel>
 

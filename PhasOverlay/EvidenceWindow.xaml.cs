@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -1905,12 +1904,6 @@ namespace PhasOverlay
         {
             if (PlayIcon == null) return;
             PlayIcon.Data = Geometry.Parse(playing ? "M6,6 H18 V18 H6 Z" : "M8,5 L19,12 L8,19 Z");
-        }
-
-        private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
-        {
-            Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
-            e.Handled = true;
         }
 
         private void HuntPill_Click(object sender, RoutedEventArgs e)

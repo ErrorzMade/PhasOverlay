@@ -41,27 +41,15 @@ namespace PhasOverlay
 
             CmbPosition.SelectedIndex = _overlay.OverlayPosition;
             PopulateDisplays();
-            OpacitySlider.Value = _overlay.BgBrush.Opacity;
+            OpacitySlider.Value = _overlay.BgOpacity;
             ScaleSlider.Value = _overlay.OverlayScale.ScaleX;
 
             VolumeSlider.Value = _overlay.MasterVolume;
 
-            ChkPersistentOverlay.IsChecked = !_overlay.IsCompactMode;
-            ChkAlwaysShowEvidence.IsChecked = _overlay.AlwaysShowEvidence;
-            ChkAlwaysShowEvidence.IsEnabled = _overlay.IsCompactMode;
-
             UpdateVolumeLabel();
             UpdateSliderLabels();
 
-            TglSmudge.IsChecked = _overlay.ModStates[0];
-            TglCooldown.IsChecked = _overlay.ModStates[1];
-            TglHunt.IsChecked = _overlay.ModStates[2];
-            TglObambo.IsChecked = _overlay.ModStates[3];
-            TglSpeed.IsChecked = _overlay.ModStates[4];
-            TglBloodMoon.IsChecked = _overlay.ModStates[5];
-            TglCursed.IsChecked = _overlay.ModStates[6];
-            TglEvidence.IsChecked = _overlay.ModStates[7];
-            TglGhosts.IsChecked = _overlay.ModStates[8];
+            SyncModuleRows();
 
             RefreshBindVisuals();
 
@@ -193,6 +181,23 @@ namespace PhasOverlay
             HotkeysModalOverlay.Visibility = Visibility.Visible;
         }
 
+        private void OpenModules_Click(object sender, RoutedEventArgs e)
+        {
+            SyncModuleRows();
+            ModulesModalOverlay.Visibility = Visibility.Visible;
+        }
+
+        private void CloseModules_Click(object sender, RoutedEventArgs e)
+        {
+            ModulesModalOverlay.Visibility = Visibility.Collapsed;
+        }
+
+        private void ModulesModalOverlay_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+            => CloseModules_Click(sender, e);
+
+        /// <summary>Both modals: a click on the card itself must not reach the scrim behind it.</summary>
+        private void ModalContent_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => e.Handled = true;
+
         private void CloseHotkeys_Click(object sender, RoutedEventArgs e)
         {
             if (_activeBindButton != null)
@@ -205,19 +210,14 @@ namespace PhasOverlay
         }
 
         private void HotkeysModalOverlay_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            CloseHotkeys_Click(sender, e);
-        }
-
-        private void HotkeysModalContent_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            e.Handled = true;
-        }
+            => CloseHotkeys_Click(sender, e);
 
         private void RefreshBindVisuals()
         {
             BtnBindSettings.Content = $"[ {FormatKeyName(_overlay.KeySettings)} ]  Settings";
             BtnBindEvidence.Content = $"[ {FormatKeyName(_overlay.KeyEvidence)} ]  Evidence Window";
+            BtnBindMap.Content = $"[ {FormatKeyName(_overlay.KeyMap)} ]  Map Window";
+            BtnBindMapHold.Content = $"[ {FormatKeyName(_overlay.KeyMapHold)} ]  Hold: Show Map";
 
             BtnBindClear.Content = $"[ {FormatKeyName(_overlay.KeyClear)} ]  Reset UI";
 
@@ -427,7 +427,7 @@ namespace PhasOverlay
                 _overlay.RefreshCompactModeVisuals(true);
             }
 
-            _overlay.BgBrush.Opacity = OpacitySlider.Value;
+            _overlay.BgOpacity = OpacitySlider.Value;
             _overlay.OverlayScale.ScaleX = ScaleSlider.Value;
             _overlay.OverlayScale.ScaleY = ScaleSlider.Value;
 
@@ -435,49 +435,82 @@ namespace PhasOverlay
             _overlay.RefreshCompactModeVisuals(true);
         }
 
-        private void Module_Click(object sender, RoutedEventArgs e)
+        // Rows answer Checked, not Click, since arrow keys change a radio group without clicking it.
+        private bool _syncingRows;
+
+        // A null segment is a mode the row does not offer.
+        private record ModeRow(ModuleId Id, RadioButton? Off, RadioButton? Auto, RadioButton Always);
+
+        private ModeRow[]? _rows;
+
+        private ModeRow[] Rows => _rows ??= new[]
+        {
+            new ModeRow(ModuleId.Smudge, RbSmudgeOff, RbSmudgeAuto, RbSmudgeAlways),
+            new ModeRow(ModuleId.Cooldown, RbCooldownOff, RbCooldownAuto, RbCooldownAlways),
+            new ModeRow(ModuleId.Hunt, RbHuntOff, RbHuntAuto, RbHuntAlways),
+            new ModeRow(ModuleId.Obambo, RbObamboOff, RbObamboAuto, RbObamboAlways),
+            new ModeRow(ModuleId.SpeedTap, RbSpeedOff, RbSpeedAuto, RbSpeedAlways),
+            new ModeRow(ModuleId.BloodMoon, null, RbBloodMoonAuto, RbBloodMoonAlways),
+            new ModeRow(ModuleId.Cursed, null, RbCursedAuto, RbCursedAlways),
+            new ModeRow(ModuleId.Evidence, RbEvidenceOff, null, RbEvidenceAlways),
+            new ModeRow(ModuleId.Ghosts, RbGhostsOff, null, RbGhostsAlways)
+        };
+
+        private void SyncModuleRows()
+        {
+            _syncingRows = true;
+            foreach (var row in Rows)
+            {
+                var mode = _overlay.ModeOf(row.Id);
+                if (row.Off != null) row.Off.IsChecked = mode == ModuleMode.Off;
+                if (row.Auto != null) row.Auto.IsChecked = mode == ModuleMode.Auto;
+
+                // A mode this row cannot show lands on Always rather than leaving the row blank.
+                row.Always.IsChecked = mode == ModuleMode.Always
+                                       || (row.Off?.IsChecked != true && row.Auto?.IsChecked != true);
+            }
+            _syncingRows = false;
+        }
+
+        private ModuleMode[] ReadModuleRows()
+        {
+            var modes = new ModuleMode[Rows.Length];
+            foreach (var row in Rows)
+            {
+                modes[(int)row.Id] = row.Off?.IsChecked == true ? ModuleMode.Off
+                    : row.Auto?.IsChecked == true ? ModuleMode.Auto
+                    : ModuleMode.Always;
+            }
+            return modes;
+        }
+
+        private void ModuleMode_Checked(object sender, RoutedEventArgs e)
+        {
+            if (!_isLoaded || _syncingRows || _overlay == null) return;
+
+            // Deliberately not the whole-overlay preview: only the row just changed flashes up.
+            ModuleId? changed = null;
+            foreach (var row in Rows)
+            {
+                if (ReferenceEquals(sender, row.Off) || ReferenceEquals(sender, row.Auto) || ReferenceEquals(sender, row.Always))
+                {
+                    changed = row.Id;
+                    break;
+                }
+            }
+
+            _overlay.ApplyModuleModes(ReadModuleRows(), changed);
+        }
+
+        private void ModulePreset_Click(object sender, RoutedEventArgs e)
         {
             if (!_isLoaded || _overlay == null) return;
 
+            var mode = (sender as FrameworkElement)?.Tag as string == "Always" ? ModuleMode.Always : ModuleMode.Auto;
+
             _overlay.LastSettingsPreviewTime = DateTime.Now;
-
-            bool[] newStates = new bool[] {
-                TglSmudge.IsChecked == true,
-                TglCooldown.IsChecked == true,
-                TglHunt.IsChecked == true,
-                TglObambo.IsChecked == true,
-                TglSpeed.IsChecked == true,
-                TglBloodMoon.IsChecked == true,
-                TglCursed.IsChecked == true,
-                TglEvidence.IsChecked == true,
-                TglGhosts.IsChecked == true
-            };
-
-            _overlay.ApplyModuleVisibility(newStates);
-        }
-
-        private void ModuleToggle_Click(object sender, RoutedEventArgs e)
-        {
-            Module_Click(sender, e);
-        }
-
-        private void PersistentMode_Click(object sender, RoutedEventArgs e)
-        {
-            if (_overlay != null)
-            {
-                _overlay.IsCompactMode = ChkPersistentOverlay.IsChecked == false;
-                ChkAlwaysShowEvidence.IsEnabled = _overlay.IsCompactMode;
-                _overlay.RefreshCompactModeVisuals(true);
-            }
-        }
-
-        private void AlwaysShowEvidence_Click(object sender, RoutedEventArgs e)
-        {
-            if (_overlay != null)
-            {
-                _overlay.AlwaysShowEvidence = ChkAlwaysShowEvidence.IsChecked == true;
-                _overlay.RefreshCompactModeVisuals(true);
-            }
+            _overlay.ApplyModulePreset(mode);
+            SyncModuleRows();
         }
 
         private void VolumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -497,17 +530,6 @@ namespace PhasOverlay
 
         private void SaveSettingsData()
         {
-            string statesStr = "";
-            statesStr += TglSmudge.IsChecked == true ? "1" : "0";
-            statesStr += TglCooldown.IsChecked == true ? "1" : "0";
-            statesStr += TglHunt.IsChecked == true ? "1" : "0";
-            statesStr += TglObambo.IsChecked == true ? "1" : "0";
-            statesStr += TglSpeed.IsChecked == true ? "1" : "0";
-            statesStr += TglBloodMoon.IsChecked == true ? "1" : "0";
-            statesStr += TglCursed.IsChecked == true ? "1" : "0";
-            statesStr += TglEvidence.IsChecked == true ? "1" : "0";
-            statesStr += TglGhosts.IsChecked == true ? "1" : "0";
-
             // Match settings come from the overlay, never this window's combos. While linked the
             // room owns them, and closing a stale window must not roll them back.
             int finalDurIdx = _overlay.ResolveHuntTier();
@@ -535,9 +557,7 @@ namespace PhasOverlay
                 $"Display={(CmbDisplay.SelectedIndex >= 0 ? CmbDisplay.SelectedIndex : DisplayService.PrimaryIndex())}",
                 $"Opacity={OpacitySlider.Value}",
                 $"Scale={ScaleSlider.Value}",
-                $"CompactMode={(ChkPersistentOverlay.IsChecked == false ? 1 : 0)}",
-                $"AlwaysShowEvidence={(ChkAlwaysShowEvidence.IsChecked == true ? 1 : 0)}",
-                $"ModulesActive={statesStr}",
+                $"ModuleModes={_overlay.ModuleModesString()}",
                 "",
                 "[Audio]",
                 $"Volume={VolumeSlider.Value}",
@@ -555,6 +575,8 @@ namespace PhasOverlay
                 $"KeyEvidence={_overlay.KeyEvidence}",
                 $"KeyClear={_overlay.KeyClear}",
                 $"KeyToggleEv={_overlay.KeyToggleEv}",
+                $"KeyMap={_overlay.KeyMap}",
+                $"KeyMapHold={_overlay.KeyMapHold}",
                 $"KeyEv1={_overlay.KeyEv1}",
                 $"KeyEv2={_overlay.KeyEv2}",
                 $"KeyEv3={_overlay.KeyEv3}",
@@ -570,9 +592,25 @@ namespace PhasOverlay
             }
         }
 
+        // The Settings hotkey closes this window without either button, so saving also runs on close.
+        private bool _saved;
+
+        private void SaveOnce()
+        {
+            if (_saved) return;
+            _saved = true;
+            try { SaveSettingsData(); } catch { }
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            base.OnClosed(e);
+            SaveOnce();
+        }
+
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            try { SaveSettingsData(); } catch { }
+            SaveOnce();
 
             if (_isFirstRun)
             {
@@ -585,13 +623,13 @@ namespace PhasOverlay
 
         private void CloseOverlay_Click(object sender, RoutedEventArgs e)
         {
-            try { SaveSettingsData(); } catch { }
+            SaveOnce();
             Application.Current.Shutdown();
         }
 
         internal void SaveBeforeAppExit()
         {
-            try { SaveSettingsData(); } catch { }
+            SaveOnce();
         }
     }
 }

@@ -201,6 +201,9 @@
                 </Border>
 
                 <StackPanel x:Name="ModEvidence" Grid.Row="2" Grid.Column="0" Margin="0,0,15,0">
+                    <StackPanel.Effect>
+                        <DropShadowEffect Color="Black" BlurRadius="2" ShadowDepth="1" Opacity="0.9"/>
+                    </StackPanel.Effect>
                     <StackPanel.RenderTransform>
                         <TransformGroup>
                             <ScaleTransform ScaleX="1" ScaleY="1"/>

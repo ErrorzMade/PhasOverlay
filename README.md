@@ -9,6 +9,7 @@
 ### - Evidence tracker that rules out ghosts by evidence, speed & behaviours
 ### - Link system that allows you to use PhasOverlay with up to 7 other people
 ### - Weekly challenge presets
+### - Map floor plans showing every cursed possession and power box, in a window or held over the whole screen
 ### - Fully customisable hotkey support
 ### - Fully customisable UI: change opacity, size and location to fit your preferences
 
@@ -24,6 +25,8 @@
 
 ## Credits
 Some ghost information is sourced from the [Phasmophobia Cheat Sheet](https://tybayn.github.io/phasmo-cheat-sheet/).
+
+Possession icons by [Magnific](https://www.flaticon.com/authors/magnific), [smashingstocks](https://www.flaticon.com/authors/smashingstocks), [Mayor Icons](https://www.flaticon.com/authors/mayor-icons), [asol_studio](https://www.flaticon.com/authors/asol-studio), [Awicon](https://www.flaticon.com/authors/awicon), [POD Gladiator](https://www.flaticon.com/authors/pod-gladiator) and [Fantasyou](https://www.flaticon.com/authors/fantasyou) from [Flaticon](https://www.flaticon.com/).
 
 Phasmophobia is the property of [Kinetic Games](https://www.kineticgames.co.uk/). PhasOverlay is an unofficial, fan-made tool. It is not affiliated with, endorsed by, or associated with Kinetic Games.
 

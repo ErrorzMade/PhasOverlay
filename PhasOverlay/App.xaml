@@ -11,6 +11,11 @@
         <!-- Accents -->
         <SolidColorBrush x:Key="AccentBrush"        Color="#FFB455FF" po:Freeze="True"/>
         <SolidColorBrush x:Key="DangerBrush"        Color="#FFFF5555" po:Freeze="True"/>
+        <!-- The accent lifted a little so a possession icon holds up on the darker room tints. -->
+        <SolidColorBrush x:Key="PossessionBrush"    Color="#FFC27BFF" po:Freeze="True"/>
+        <!-- The same green the plans draw the front door in, like the fuse box light in the game. -->
+        <SolidColorBrush x:Key="PowerBoxBrush"      Color="#FF4ADE80" po:Freeze="True"/>
+        <SolidColorBrush x:Key="PowerBoxFillBrush"  Color="#F20E2A18" po:Freeze="True"/>
 
         <!-- Text -->
         <SolidColorBrush x:Key="TextPrimaryBrush"   Color="#FFDDDDDD" po:Freeze="True"/>

@@ -10,6 +10,7 @@ namespace PhasOverlay
         public int Index;
         public bool IsPrimary;
         public Rect WorkArea;      // DIPs, ready to assign to Window.Left/Top/Width/Height
+        public Rect Bounds;        // DIPs, the whole monitor including the taskbar
         public int PixelWidth;
         public int PixelHeight;
 
@@ -79,6 +80,11 @@ namespace PhasOverlay
                             mi.rcWork.Top / scale,
                             Math.Max(1, (mi.rcWork.Right - mi.rcWork.Left) / scale),
                             Math.Max(1, (mi.rcWork.Bottom - mi.rcWork.Top) / scale)),
+                        Bounds = new Rect(
+                            mi.rcMonitor.Left / scale,
+                            mi.rcMonitor.Top / scale,
+                            Math.Max(1, (mi.rcMonitor.Right - mi.rcMonitor.Left) / scale),
+                            Math.Max(1, (mi.rcMonitor.Bottom - mi.rcMonitor.Top) / scale)),
                         PixelWidth = mi.rcMonitor.Right - mi.rcMonitor.Left,
                         PixelHeight = mi.rcMonitor.Bottom - mi.rcMonitor.Top
                     });
@@ -95,6 +101,7 @@ namespace PhasOverlay
                     Index = 0,
                     IsPrimary = true,
                     WorkArea = wa,
+                    Bounds = new Rect(0, 0, SystemParameters.PrimaryScreenWidth, SystemParameters.PrimaryScreenHeight),
                     PixelWidth = (int)SystemParameters.PrimaryScreenWidth,
                     PixelHeight = (int)SystemParameters.PrimaryScreenHeight
                 });
@@ -121,6 +128,19 @@ namespace PhasOverlay
 
             foreach (var d in all) if (d.IsPrimary) return d.WorkArea;
             return all[0].WorkArea;
+        }
+
+        /// <summary>
+        /// The whole chosen monitor, taskbar included, falling back the same way as
+        /// <see cref="WorkAreaFor"/>. For anything that deliberately covers the screen.
+        /// </summary>
+        public static Rect BoundsFor(int index)
+        {
+            var all = GetDisplays();
+            if (index >= 0 && index < all.Count) return all[index].Bounds;
+
+            foreach (var d in all) if (d.IsPrimary) return d.Bounds;
+            return all[0].Bounds;
         }
 
         /// <summary>Centres a window on the chosen monitor. Call once the window has a size.</summary>

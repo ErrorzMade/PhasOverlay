@@ -1,0 +1,48 @@
+<Window x:Class="PhasOverlay.MapOverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="PhasOverlay Map Overlay"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Topmost="True" ShowInTaskbar="False" ShowActivated="False" Focusable="False"
+        IsHitTestVisible="False" ResizeMode="NoResize">
+    <Grid x:Name="Root" Background="#E00B0B0C">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,22,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <TextBlock x:Name="MapNameText" Foreground="White" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
+                <Border x:Name="VariationTag" Visibility="Collapsed" BorderBrush="#FF55555A" BorderThickness="1"
+                        CornerRadius="5" Padding="10,3" Margin="14,0,0,0" VerticalAlignment="Center">
+                    <TextBlock x:Name="VariationText" Foreground="#FFCCCCCC" FontSize="12.5" FontWeight="Bold"/>
+                </Border>
+            </StackPanel>
+
+            <Border x:Name="FloorTrack" HorizontalAlignment="Center" Margin="0,12,0,0"
+                    Background="#FF1C1C1F" CornerRadius="16" Padding="4">
+                <StackPanel x:Name="FloorRow" Orientation="Horizontal"/>
+            </Border>
+        </StackPanel>
+
+        <Grid x:Name="PlanHost" Grid.Row="1" Margin="40,14,40,34" SizeChanged="PlanHost_SizeChanged">
+            <Image x:Name="PlanImage" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"
+                   RenderOptions.BitmapScalingMode="HighQuality"/>
+            <Canvas x:Name="MarkerLayer"/>
+            <Canvas x:Name="ShotLayer" IsHitTestVisible="False">
+                <Border x:Name="ShotPopover" Visibility="Collapsed" Background="#F21A1A1D"
+                        CornerRadius="6" BorderBrush="#FFB455FF" BorderThickness="1" Padding="9">
+                    <StackPanel>
+                        <Image x:Name="ShotImage" MaxWidth="440" MaxHeight="260" Stretch="Uniform"/>
+                        <TextBlock x:Name="ShotTitle" Foreground="White" FontSize="13" FontWeight="Bold" Margin="2,8,2,0"/>
+                        <TextBlock x:Name="ShotRoom" Foreground="#FF888888" FontSize="11" Margin="2,3,2,0"/>
+                    </StackPanel>
+                </Border>
+            </Canvas>
+            <TextBlock x:Name="NoPlanText" Text="Not added yet" Visibility="Collapsed"
+                       Foreground="#FFAAAAAA" FontSize="16" FontWeight="SemiBold"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Grid>
+    </Grid>
+</Window>

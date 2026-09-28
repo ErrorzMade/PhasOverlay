@@ -18,16 +18,22 @@
 # Local app data / settings
 settings.txt
 
-# Private working notes for Claude (never publish)
+# Private working notes (never publish)
 CLAUDE.md
 
 # Protocol conformance harness, not part of the shipped app
 PhasOverlay.Link.Tests/
 
-# Claude Code local session/permission state — can contain local machine paths
+# Scratch notes, not part of the repo
+scratchpad/
+
+# Local tool session state, can contain local machine paths
 .claude/
 
 # OS cruft
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Local dev tools, never published
+tools/

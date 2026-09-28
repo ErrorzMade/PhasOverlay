@@ -30,6 +30,8 @@ namespace PhasOverlay
             public bool PreserveDemoForNextStep = false;
             public bool PlaysTutorialFootsteps = false;
             public bool StartsEvidenceTutorial = false;
+            public bool StartsMapTutorial = false;
+            public bool HoldsMap = false;
             public string FollowUpHint = "";
             public string FollowUpHintTail = "";
             public (Func<MainWindow, int> Key, Action<MainWindow> Act)? FollowUp = null;
@@ -115,6 +117,25 @@ namespace PhasOverlay
                 Hint = "Press", HintTail = "to begin the walkthrough",
                 StartsEvidenceTutorial = true,
                 Inputs = new (Func<MainWindow, int>, Action<MainWindow>)[] { (m => m.KeyEvidence, m => { }) }
+            },
+            new TeachStep
+            {
+                Subtitle = "MAPS",
+                Title = "Find Your Way Around",
+                Body = "Every map has a floor plan showing where each cursed possession spawns and where the power boxes are. Open the maps to take a look.",
+                Hint = "Press", HintTail = "to open the maps",
+                StartsMapTutorial = true,
+                Inputs = new (Func<MainWindow, int>, Action<MainWindow>)[] { (m => m.KeyMap, m => { }) }
+            },
+            new TeachStep
+            {
+                Subtitle = "MAP OVERLAY",
+                Title = "Bring Up The Map",
+                Body = "Holding the key shows your selected map over the whole screen, even while you are running. Let go and it disappears.",
+                Note = "While the map is up, the left and right arrow keys change floor.",
+                Hint = "Hold", HintTail = "to bring up the map",
+                HoldsMap = true,
+                Inputs = new (Func<MainWindow, int>, Action<MainWindow>)[] { (m => m.KeyMapHold, m => { }) }
             }
         };
 
@@ -125,6 +146,8 @@ namespace PhasOverlay
         private bool _awaitingFollowUp = false;
         private bool _followUpKeyLast = false;
         private bool _evidenceTutorialRunning = false;
+        private bool _mapTutorialRunning = false;
+        private bool _mapHoldSeen = false;
         private bool _capturingSettingsKey = false;
         private CancellationTokenSource? _tutorialFootstepCancel;
         private bool _tutorialFootstepLoaded = false;
@@ -159,6 +182,7 @@ namespace PhasOverlay
             {
                 _main.WeeklyDataStateChanged -= OnWeeklyDataStateChanged;
                 _inputTimer.Stop();
+                _main.TutorialMapHold = false;
                 CloseTutorialFootsteps();
             };
         }
@@ -273,6 +297,7 @@ namespace PhasOverlay
             _stepSatisfied = false;
             _awaitingFollowUp = false;
             _followUpKeyLast = false;
+            _mapHoldSeen = false;
 
             TeachStep s = Steps[index];
             _pressCounts = new int[s.Inputs.Length];
@@ -406,7 +431,14 @@ namespace PhasOverlay
             bool shiftDown = (GetAsyncKeyState(0x10) & 0x8000) != 0;
             TeachStep s = Steps[_stepIndex];
 
+            _main.TutorialMapHold = s.HoldsMap && !_stepSatisfied;
             if (_stepSatisfied) return;
+
+            if (s.HoldsMap)
+            {
+                PollMapHold();
+                return;
+            }
 
             if (_awaitingFollowUp && s.FollowUp.HasValue)
             {
@@ -446,6 +478,13 @@ namespace PhasOverlay
                         return;
                     }
 
+                    if (s.StartsMapTutorial)
+                    {
+                        _keyLast[i] = down;
+                        StartMapTutorial();
+                        return;
+                    }
+
                     s.Inputs[i].Act(_main);
                     RefreshProgressHint();
                 }
@@ -471,12 +510,8 @@ namespace PhasOverlay
             if (_evidenceTutorialRunning) return;
 
             _evidenceTutorialRunning = true;
-            _inputTimer.Stop();
-            Opacity = 0;
-            MoveToNextStep();
-            UpdateLayout();
-            Dispatcher.Invoke(DispatcherPriority.Render, new Action(() => { }));
-            Hide();
+            int openingStep = _stepIndex;
+            HideForWalkthrough();
 
             _main.StartEvidenceTutorial(completed =>
             {
@@ -489,17 +524,72 @@ namespace PhasOverlay
                         Step3.Visibility = Visibility.Collapsed;
                         BtnFinish.Visibility = Visibility.Collapsed;
                         StepTeach.Visibility = Visibility.Visible;
-                        ShowStep(_stepIndex);
+                        ShowStep(openingStep);
                     }
 
-                    Show();
-                    UpdateLayout();
-                    Dispatcher.Invoke(DispatcherPriority.Render, new Action(() => { }));
-                    Opacity = 1;
-                    Activate();
-                    _inputTimer.Start();
+                    ReturnFromWalkthrough();
                 });
             });
+        }
+
+        // A cancelled lesson steps back to the step that opened it.
+        private void StartMapTutorial()
+        {
+            if (_mapTutorialRunning) return;
+
+            _mapTutorialRunning = true;
+            int openingStep = _stepIndex;
+            _main.TutorialMapHold = false;
+            HideForWalkthrough();
+
+            _main.StartMapTutorial(completed =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    _mapTutorialRunning = false;
+                    if (!completed) ShowStep(openingStep);
+                    ReturnFromWalkthrough();
+                });
+            });
+        }
+
+        /// <summary>
+        /// The map key is handed to the real held map for this step. It passes once the map has been
+        /// on screen and has been let go again.
+        /// </summary>
+        private void PollMapHold()
+        {
+            if (_main.IsMapHeld)
+            {
+                if (!_mapHoldSeen)
+                {
+                    _mapHoldSeen = true;
+                    MarkKeyCapPressed(TeachKeyCap, TeachKeyText);
+                }
+                return;
+            }
+
+            if (_mapHoldSeen) MarkStepSatisfied();
+        }
+
+        private void HideForWalkthrough()
+        {
+            _inputTimer.Stop();
+            Opacity = 0;
+            MoveToNextStep();
+            UpdateLayout();
+            Dispatcher.Invoke(DispatcherPriority.Render, new Action(() => { }));
+            Hide();
+        }
+
+        private void ReturnFromWalkthrough()
+        {
+            Show();
+            UpdateLayout();
+            Dispatcher.Invoke(DispatcherPriority.Render, new Action(() => { }));
+            Opacity = 1;
+            Activate();
+            _inputTimer.Start();
         }
 
         private bool EnsureTutorialFootstep()
@@ -580,6 +670,8 @@ namespace PhasOverlay
             {
                 if (_main.IsEvidenceWindowOpen) _main.ToggleEvidenceWindow();
                 _main.ClearAll();
+                _main.TutorialMapHold = false;
+                _main.EndMapDemo();
             }
             catch { }
             _main.MasterVolume = originalVolume;
@@ -705,7 +797,7 @@ namespace PhasOverlay
         private void SldOpacity_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (!_isLoaded || _main == null) return;
-            _main.BgBrush.Opacity = SldOpacity.Value;
+            _main.BgOpacity = SldOpacity.Value;
 
             UpdateSliderLabels();
             _main.LastSettingsPreviewTime = DateTime.Now;
@@ -726,13 +818,12 @@ namespace PhasOverlay
             _main.RefreshCompactModeVisuals(true);
         }
 
-        private void PersistentMode_Click(object sender, RoutedEventArgs e)
+        private void ModulePreset_Checked(object sender, RoutedEventArgs e)
         {
             if (!_isLoaded || _main == null) return;
-            _main.IsCompactMode = ChkPersistentOverlay.IsChecked == false;
 
             _main.LastSettingsPreviewTime = DateTime.Now;
-            _main.RefreshCompactModeVisuals(true);
+            _main.ApplyModulePreset(RbModulesAlways.IsChecked == true ? ModuleMode.Always : ModuleMode.Auto);
         }
 
         // ------------------------------------------------------------------
@@ -742,9 +833,6 @@ namespace PhasOverlay
         {
             try
             {
-                string statesStr = "";
-                for (int i = 0; i < 7; i++) statesStr += _main.ModStates[i] ? "1" : "0";
-
                 int finalDurIdx = GetResolvedDurationIndex();
                 int diffIdx = CmbDifficulty.SelectedIndex >= 0 ? CmbDifficulty.SelectedIndex : 1;
                 int customDurIdx = CmbCustomDuration.SelectedIndex >= 0 ? CmbCustomDuration.SelectedIndex : 1;
@@ -768,8 +856,7 @@ namespace PhasOverlay
                     $"Position={posIdx}",
                     $"Opacity={SldOpacity.Value}",
                     $"Scale={SldScale.Value}",
-                    $"CompactMode={(_main.IsCompactMode ? 1 : 0)}",
-                    $"ModulesActive={statesStr}",
+                    $"ModuleModes={_main.ModuleModesString()}",
                     "",
                     "[Audio]",
                     $"Volume={_main.MasterVolume}",
@@ -786,6 +873,8 @@ namespace PhasOverlay
                     $"KeySpeedTap={_main.KeySpeedTap}",
                     $"KeySettings={_main.KeySettings}",
                     $"KeyEvidence={_main.KeyEvidence}",
+                    $"KeyMap={_main.KeyMap}",
+                    $"KeyMapHold={_main.KeyMapHold}",
                     $"KeyClear={_main.KeyClear}"
                 };
 
