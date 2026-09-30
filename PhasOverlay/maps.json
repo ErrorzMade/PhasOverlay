@@ -1,6 +1,6 @@
-{
+﻿{
   "schemaVersion": 1,
-  "dataVersion": 3,
+  "dataVersion": 6,
   "possessions": [
     {
       "item": "Ouija Board",
@@ -991,7 +991,7 @@
             {
               "kind": "cursed",
               "item": "Ouija Board",
-              "x": 0.8006,
+              "x": 0.8123,
               "y": 0.4364,
               "room": "Living Room",
               "image": "Images/Cursed/Bleasdale/bleasdaleboard.jpg"
@@ -999,15 +999,15 @@
             {
               "kind": "cursed",
               "item": "Music Box",
-              "x": 0.5463,
-              "y": 0.5863,
-              "room": "Kitchen",
+              "x": 0.5535,
+              "y": 0.7019,
+              "room": "Tea Room",
               "image": "Images/Cursed/Bleasdale/bleasdalemusicbox.jpg"
             },
             {
               "kind": "cursed",
               "item": "Summoning Circle",
-              "x": 0.265,
+              "x": 0.2767,
               "y": 0.8503,
               "room": "Utility Room",
               "image": "Images/Cursed/Bleasdale/bleasdalesummoningcircle.jpg"
@@ -1015,7 +1015,7 @@
             {
               "kind": "powerbox",
               "item": "Power Box",
-              "x": 0.2271,
+              "x": 0.2388,
               "y": 0.7715,
               "room": "Utility Room",
               "image": ""
@@ -1023,7 +1023,7 @@
             {
               "kind": "powerbox",
               "item": "Power Box",
-              "x": 0.6703,
+              "x": 0.682,
               "y": 0.2744,
               "room": "Garden Porch",
               "image": ""
@@ -1037,7 +1037,7 @@
             {
               "kind": "cursed",
               "item": "Haunted Mirror",
-              "x": 0.6146,
+              "x": 0.6263,
               "y": 0.8735,
               "room": "Trophy Room",
               "image": "Images/Cursed/Bleasdale/bleasdalemirror.jpg"
@@ -1045,7 +1045,7 @@
             {
               "kind": "cursed",
               "item": "Voodoo Doll",
-              "x": 0.5093,
+              "x": 0.521,
               "y": 0.4155,
               "room": "Master Bedroom",
               "image": "Images/Cursed/Bleasdale/bleasdalevoodoo.jpg"
@@ -1053,7 +1053,7 @@
             {
               "kind": "cursed",
               "item": "Monkey Paw",
-              "x": 0.2249,
+              "x": 0.2366,
               "y": 0.4518,
               "room": "Study",
               "image": "Images/Cursed/Bleasdale/bleasdalemonkeypaw.jpg"
@@ -1061,7 +1061,7 @@
             {
               "kind": "powerbox",
               "item": "Power Box",
-              "x": 0.3664,
+              "x": 0.3781,
               "y": 0.7596,
               "room": "Attic Hallway",
               "image": ""
@@ -1075,7 +1075,7 @@
             {
               "kind": "cursed",
               "item": "Tarot Cards",
-              "x": 0.6365,
+              "x": 0.6482,
               "y": 0.7726,
               "room": "Attic Bedroom",
               "image": "Images/Cursed/Bleasdale/bleasdaletarot.jpg"
