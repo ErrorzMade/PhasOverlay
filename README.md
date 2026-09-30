@@ -1,12 +1,14 @@
 <sub>⚠ PhasOverlay never reads from, writes to, or otherwise interacts with the Phasmophobia game process. Every timer and toggle is triggered manually by you, via hotkeys.</sub>
 
-# Welcome to PhasOverlay
-<img width="2559" height="972" alt="image" src="https://github.com/user-attachments/assets/d8f10b50-cf78-400e-a43c-51177c14195c" />
+<img width="1600" height="400" alt="GitHubBannerTransparent" src="https://github.com/user-attachments/assets/1f276900-b61d-4537-9d82-a24c0d2bd4b1" />
+
+
 
 ## Features
 ### - Hunt, cooldown & smudge timers
 ### - Ghost speed tracking (tap to footsteps) & LOS visualisers
 ### - Evidence tracker that rules out ghosts by evidence, speed & behaviours
+### - Map viewer that allows you to view cursed object locations, power box locations, exits and a top-down view of every Phasmophobia map.
 ### - Link system that allows you to use PhasOverlay with up to 7 other people
 ### - Weekly challenge presets
 ### - Map floor plans showing every cursed possession and power box, in a window or held over the whole screen
